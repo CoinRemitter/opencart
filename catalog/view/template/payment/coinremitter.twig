@@ -1,0 +1,55 @@
+{% if wallets is empty %} 
+  	<div class="pull-right">
+    	<p> No wallet found. Please make atlease one wallet </p>
+  	</div>
+{% else %}
+	<div class="alert alert-danger alert-dismissible" style="display:none" id="error_div"> 
+		<i class="fa fa-exclamation-circle"></i> <span id="error_msg">Error</span>
+	</div>
+	<div class="buttons">
+	  	<div class="pull-right" >
+	    	<input type="button" value="{{ button_confirm }}" id="button-confirm" data-loading-text="{{ text_loading }}" class="btn btn-primary" />
+	  	</div>
+	  	<div class="pull-right" style="padding-right: 10px;margin-top: 10px;">
+			<select name="coin" class="form-control" id="coin">
+		     	{% for wallet in wallets %}
+		      		<option value="{{ wallet.coin }}">{{ wallet.coin }}</option>
+		      	{% endfor %}
+		    </select>	
+		</div>
+		<div class="pull-right" style="padding-right: 5px; padding-top: 7px;">
+			<label class="control-label"><strong>I will pay using</strong></label>
+		</div>
+	</div>
+{% endif %}
+
+<script type="text/javascript"><!--
+$('#button-confirm').on('click', function() {
+	$('#error_div').hide();
+	$('#error_msg').text('');
+	var coin = $('#coin').val();
+	$.ajax({
+		url: 'index.php?route=extension/coinremitter/payment/coinremitter|confirm',
+		type:'post',
+		data:{ coin:coin },
+		dataType: 'json',
+		beforeSend: function() {
+			$('#button-confirm').button('loading');
+		},
+		complete: function() {
+			$('#button-confirm').button('reset');
+		},
+		success: function(json) {
+			if(json['flag'] == 1 && json['redirect']){
+				location = json['redirect'];	
+			}else{
+				$('#error_msg').text(json['msg']);
+				$('#error_div').show();
+			}
+		},
+		error: function(xhr, ajaxOptions, thrownError) {
+			alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+		}
+	});
+});
+//--></script>
