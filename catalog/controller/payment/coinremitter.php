@@ -603,15 +603,15 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 												}else if($total_paid != 0 && $total_paid < $order_info['crp_amount']){
 													$status = 'under paid';
 												}
-
+												
 												if($status != ''){
 													//update payment_status,status
 													$update_arr = array('payment_status' => $status);
 													$this->model_extension_coinremitter_payment_coinremitter->updateOrder($orderId,$update_arr);
 													$update_arr = array('status' => ucfirst($status));
 													$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($orderId,$update_arr);
-
-													if($status == 'paid' || $status == 'over paid'){
+													
+													if($status == 'paid' || $status == 'over paid' || $status == 'under paid'){
 														/*** Update order status as complete ***/
 														$this->add_order_success_history($orderId);
 													}
@@ -679,8 +679,8 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 			//check if order id exists in coinremitter_order or not
 			$this->load->model('extension/coinremitter/payment/coinremitter');	
 			$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-			
-			if(!empty($order_info) && (strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'over paid')){
+
+			if(!empty($order_info) && (strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'under paid' || strtolower($order_info['payment_status']) == 'over paid')){
 
 				$getWebhookByAddressRes = $this->model_extension_coinremitter_payment_coinremitter->getWebhookByAddress($order_info['address']);	
 
@@ -733,7 +733,11 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 			        
 
 			        $this->load->model('checkout/order');
-			        $this->model_checkout_order->addHistory($orderId, 5, $comments);  // 5 = Complete
+			        if($order_info['payment_status'] == 'over paid' || $order_info['payment_status'] == 'paid'){
+			        	$this->model_checkout_order->addHistory($orderId, 5, $comments);  // 5 = Complete
+					}else{
+						$this->model_checkout_order->addHistory($orderId, 1, $comments);  // 1 = pending
+			        }
 
 				}
 			}

@@ -451,8 +451,8 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 			$result['password'] = $obj_curl->decrypt($result['password']);
 			$ccRes = $this->checkCredentials($result);
 			if($ccRes){
-				if($result['balance'] > 0){
-					$balance = number_format($result['balance'],8,'.','');
+				if($ccRes['balance'] > 0){
+					$balance = number_format($ccRes['balance'],8,'.','');
 				}else{
 					$balance = 0;
 				}
@@ -545,9 +545,9 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 		
 		$webhook_url_link = str_replace('/admin/','/',$this->url->link('extension/coinremitter/payment/coinremitter|webhook'));
 		$data['webhook_url_msg'] = "For all these wallets, add this <strong>" . $webhook_url_link . "</strong> URL in the Webhook URL field of your Coinremitter wallet's General Settings.";
-		// echo "<pre>";
-		// print_r($data);
-		// die;
+		$data['button_add']="Add Wallet";
+		$data['button_refresh']="Refresh wallet list";
+		$data['button_delete']="Delete Wallet";
 		$this->response->setOutput($this->load->view('extension/coinremitter/module/coinremitter_list', $data));
 	}
 

@@ -3,7 +3,7 @@
 $_['menu_coinremitter'] = 'Coinremitter';
 
 // Heading
-$_['heading_title'] = 'Coinremitter Menu Add';
+$_['heading_title'] = 'Add Coinremitter menu';
 
 // Text
 $_['text_extension'] = 'Extensions';
