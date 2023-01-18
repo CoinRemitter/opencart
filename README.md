@@ -111,7 +111,7 @@ Check order details
 
 ![Coinremitter-Plugin-payment-detail](https://coinremitter.com/assets/img/screenshots/opencart/payment_detail.png) 
 
-Uninstall Plgin
+Uninstall Plugin
 ---
 1. Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'Modules'** from **"choose the extension type"** selection. You will see extensions of all the modules there.Find **'Coinremitter'** and click **'-'** at the end of the same row to disable it. Then find **'Add Coinremitter Menu'** and click **'-'** at end of the row to remove the Coinremitter menu in the left sidebar.
 2. Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'payments'** from **"choose the extension type"** selection. You will see all payment methods extension there. Find **'Coinremitter'** and click on **'-'** at end of the same line to disable it.
