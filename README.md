@@ -1,13 +1,12 @@
-CoinRemitter Crypto Payment Gateway
+CoinRemitter Crypto Payment Processor
 ===
 
-Coinremitter is an official bitcoin/altcoin payment gateway and is now available as a plugin for opencart 4. Coinremitter accepts Bitcoin, Litecoin, Bitcoin Cash, Ethereum, Dogecoin, Dash, Tether USD ERC20, Binance, Tron, Tether USD TRC20, Monero etc.
+Coinremitter is [crypto payments](http://coinremitter.com) service for Opencart. Accept Bitcoin, Tron, Binance (BEP20), BitcoinCash, Ethereum, Litecoin, Dogecoin, Tether, Dash etc.
 
-**What is Crypto Payment Gateway?**
 
-There are ample of Crypto Coins available on crypto payment gateways. You can pick one of them and create a wallet of that coins and purchase things from individual’s websites who are accepting payment in crypto coins though. Regardless, All these websites have their own API in order to accept payment from buyers.
+**What Is Crypto Payment Processor?**
 
-Apart from centralized currencies this option creates a traffic for sellers who are willing to do payments in crypto coins. In contrast, doing a payment in crypto coins offer buyers a great market  reputation and has left a foremost impact on sellers and it will also benefit to buyers & sellers if they choose **Coinremitter: Crypto Payment Gateway** as their payment method in doing a business in crypto coins.
+Crypto Payment Processor acts as a bridge between the merchant’s website and the cryptocurrency network, allowing the merchant to receive payments in the form of cryptocurrency.
 
 
 
@@ -23,21 +22,33 @@ Installation of plugin
 	a. **Download from GitHub.**<br> 
 		* Download zip file from this repo and make sure that you download the latest version of this plugin. Click here for the [latest release](https://github.com/CoinRemitter/opencart/releases).<br> 
 		* Make sure that the release is compatible with your Opencart version.<br> 
-		* Extract the zip file. Now select all the folders like admin,catelog, install.json and compress them and name it as coinremitter.ocmod.zip .<br>
+		* Extract the zip file. Now select all the folders like admin,catalog, install.json and compress them and name it as coinremitter.ocmod.zip .<br>
 	
 	b. **Download from OpenCart.**<br> 
 		* Visit this url for official [opencart coinremitter plugin](https://www.opencart.com/index.php?route=marketplace/extension/info&extension_id=39007)<br> 
 		* You will get zip file once your download gets finished, Make sure that the file name must be coinremitter.ocmod.zip and it must be compatible with your Opencart version.
 		
 2. Go to the admin panel left sidebar -> Extensions -> installer -> click on upload -> select **coinremitter.ocmod.zip** from your path and upload it
+
+![Coinremitter-Plugin-extension-installer](https://coinremitter.com/assets/img/screenshots/opencart/extension_installer.png)
+
 3. After uploading the file seek for **‘Coinremitter for checkout’** then click **‘+’** at the end of the same row to add the coinremitter plugin.
 4. Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'payments'** from **"choose the extension type"** selection. You will see all payment methods extension there. Find **'Coinremitter'** and click on **'+'** at end of the same line to enable it.
+
+![Coinremitter-Plugin-enable-payment-option](https://coinremitter.com/assets/img/screenshots/opencart/payment_select.png)
+
 5. Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'Modules'** from **"choose the extension type"** selection. You will see extensions of all the modules there.Find **'Coinremitter'** and click **'+'** at the end of the same row to enable it. Then find **'Add Coinremitter Menu'** and click **'+'** at end of the row to add the Coinremitter menu in the left sidebar.
+
+![Coinremitter-Plugin-enable-module-option](https://coinremitter.com/assets/img/screenshots/opencart/module_select.png)
+
 6. Plugin is installed to your Opencart store, follow the below instructions to fully activate it.
 
 Plugin Configuration
 ---
 * Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'payment'** from **"choose the extension type"** selection. Find **'Coinremitter'** payment extension and click on **'pencil'** at end of the same line to edit it.
+
+![Coinremitter-Plugin-configuration](https://coinremitter.com/assets/img/screenshots/opencart/configuration.png)
+
 * You will find the first option **"Extension Status"**. Select it to **Enabled**.
 * In the second option you can create your own **Title** if you need. It will display to user on checkout page
 * In the **Description** tab you can add some notes to tell your customer some meaningful things before the customer makes any step during checkout. 
@@ -100,9 +111,8 @@ Check order details
 
 ![Coinremitter-Plugin-payment-detail](https://coinremitter.com/assets/img/screenshots/opencart/payment_detail.png) 
 
-Uninstall Plugin
+Uninstall Plgin
 ---
 1. Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'Modules'** from **"choose the extension type"** selection. You will see extensions of all the modules there.Find **'Coinremitter'** and click **'-'** at the end of the same row to disable it. Then find **'Add Coinremitter Menu'** and click **'-'** at end of the row to remove the Coinremitter menu in the left sidebar.
 2. Go to the admin panel left sidebar -> Extensions -> Extensions -> select **'payments'** from **"choose the extension type"** selection. You will see all payment methods extension there. Find **'Coinremitter'** and click on **'-'** at end of the same line to disable it.
 3. Go to the admin panel left sidebar -> Extensions -> installer -> file, then seek for **'Coinremitter for checkout'** then click **'-'** at the end of the same row to disable the Coinremitter plugin then click on **'Delete symbol'**. to remove the Coinremitter plugin.
-
