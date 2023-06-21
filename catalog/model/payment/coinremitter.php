@@ -1,7 +1,7 @@
 <?php
 namespace Opencart\Catalog\Model\Extension\Coinremitter\Payment;
 class Coinremitter extends \Opencart\System\Engine\Model {
-	public function getMethod($address, $total=0) {
+	public function getMethods($address, $total=0) {
 		$this->load->language('extension/coinremitter/payment/coinremitter');
 
 		if ($total <= 0.00) {
@@ -14,12 +14,17 @@ class Coinremitter extends \Opencart\System\Engine\Model {
 		$method_data = array();
 
 		if ($status) {
-			$method_data = array(
-				'code'       => 'coinremitter',
-				'title'      => $this->config->get('payment_coinremitter_title'),
-				'terms'      => '',
-				'sort_order' => 15
-			);
+			$option_data['coinremitter'] = [
+                            'code' => 'coinremitter.coinremitter',
+                            'name' => "Pay with crypto options"
+                    ];
+                    $method_data = array(
+                            'code'       => 'coinremitter',
+                            'name'      => $this->config->get('payment_coinremitter_title'),
+                            'terms'      => '',
+                            'option'     => $option_data,
+                            'sort_order' => 15
+                    );
 		}
 
 		return $method_data;
