@@ -41,7 +41,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 			$fiat_to_crypto_response = $this->obj_curl->commonApiCall($get_fiat_rate_data);
 			// print_r($fiat_to_crypto_response);
 			if(!empty($fiat_to_crypto_response) && isset($fiat_to_crypto_response['flag']) && $fiat_to_crypto_response['flag'] == 1){
-				if($fiat_to_crypto_response['data']['crypto_amount'] >= $value['minimum_value']){
+				if($fiat_to_crypto_response['data']['fiat_amount'] >= $value['minimum_value']){
 					array_push($validate_coin['wallets'],$value);
 				}
 			}
@@ -53,7 +53,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 	public function confirm() {
 
 		$json = array();
-		if ($this->session->data['payment_method'] == 'coinremitter') {
+		if ($this->session->data['payment_method']['code'] == 'coinremitter.coinremitter') {
 			
 			if($this->request->post['coin'] != ''){
 
