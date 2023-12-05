@@ -176,7 +176,7 @@ class ControllerExtensionModuleCoinremitter extends Controller {
 				$coin_image_path = 'view/image/coinremitter/'.$add_fields['coin'].'.png';
 
 				if(!file_exists($coin_image_path)){
-		          	$url = "https://coinremitter.com/assets/img/home-coin/coin/".strtolower($add_fields['coin']).".png";
+		          	$url = CR_BASE_URL."assets/img/home-coin/coin/".strtolower($add_fields['coin']).".png";
 					if (getimagesize($url)) {
 						copy($url,$coin_image_path);
 					}

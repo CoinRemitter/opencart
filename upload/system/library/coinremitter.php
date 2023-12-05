@@ -1,4 +1,5 @@
 <?php
+define('CR_BASE_URL','https://coinremitter.com/');
 class Coinremitter
 {
     private static $instance;
@@ -28,7 +29,7 @@ class Coinremitter
     
     public function apiCall($endPoint='',$postdata = array(), $is_get = FALSE){
         
-        $api_url = 'https://coinremitter.com/api/';
+        $api_url = CR_BASE_URL.'api/';
         $api_version = 'v3';
         $plugin_version = '0.0.1';
         $url = $api_url.$api_version.'/'.$endPoint;     
