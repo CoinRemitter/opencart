@@ -4,7 +4,6 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 	private $error = array();
     /*** index() : This will call when user click edit after install coinremitter plugin ***/
 	public function index(): void {
-
 		$this->load->language('extension/coinremitter/payment/coinremitter');
 
 		$this->document->setTitle($this->language->get('heading_title'));
@@ -134,7 +133,6 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 		if (strlen($this->request->post['payment_coinremitter_title']) > 50) {
 			$this->error['payment_coinremitter_title_length'] = $this->language->get('error_title_length');
 		}
-
 		if ($this->request->post['payment_coinremitter_invoice_expiry'] == '' || $this->request->post['payment_coinremitter_invoice_expiry'] < 0 ) {
 			$this->error['payment_coinremitter_invoice_expiry'] = $this->language->get('error_invoice_expiry');
 		}
@@ -154,6 +152,9 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 		// $this->load->model('extension/opencart/fraud/ip');
 		// $this->model_extension_opencart_fraud_ip->install();
 		// echo 'Pyamnet Installation'; 
+		// $json['error'] = "Error message";
+		// $this->response->addHeader('Content-Type: application/json');
+		// $this->response->setOutput(json_encode($json));
 		// die;
 		
 		$this->load->model('extension/coinremitter/payment/coinremitter');
@@ -176,7 +177,6 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 		    	);
 			$this->model_setting_setting->editSetting('payment_coinremitter', $default_settings);
 		}
-		
 	}
 
 	public function uninstall(): void

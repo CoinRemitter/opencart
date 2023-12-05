@@ -17,7 +17,7 @@ $(document).ready(function(){
 });
 
 function dateDiff(date,now_time) {
- 	var d2 = new Date(Date.parse(now_time)).getTime();
+	var d2 = new Date(Date.parse(now_time)).getTime()
  	var d1 = new Date(Date.parse(date)).getTime();
  	var date_diff = d2 - d1;
 
@@ -43,6 +43,8 @@ function dateDiff(date,now_time) {
     return 'A moment ago';
 }
 function dateTimer() {
+	console.log("date timer called");
+
  	if($("#expire_on").val() != ''){
     	var current = getUTCTime();
     	var expire = new Date($("#expire_on").val()).getTime();
@@ -71,6 +73,7 @@ function check_payment_history(){
 		type:'post',
 		data:{address},
 		success:function(res){
+			console.log(res);
 			if(res.flag == 1){
 				var enc_order_id = res.enc_order_id;
 				if(res.is_success == 1){

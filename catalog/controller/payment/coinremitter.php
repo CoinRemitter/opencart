@@ -1,12 +1,12 @@
 <?php
 namespace Opencart\Catalog\Controller\Extension\Coinremitter\Payment;
-use Opencart\System\Library\Log;
 class Coinremitter extends \Opencart\System\Engine\Controller {
 
 	private $obj_curl;
 
 	public function __construct($registry){
 		parent::__construct($registry);
+		
 		$this->load->model('extension/coinremitter/payment/coinremitter_api');
 		$this->obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 		
@@ -18,17 +18,14 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 		$this->load->model('extension/coinremitter/payment/coinremitter');
 		$add_column_if_not_exists = $this->model_extension_coinremitter_payment_coinremitter->checkIsValidColumn();
 		$data['wallets'] = $this->model_extension_coinremitter_payment_coinremitter->getAllWallets();
-		
 		$this->load->model('checkout/order');
 		$orderId = $this->session->data['order_id'];
-		
 		// $this->session->data['agree'] = true;
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
 		$currency_code = $this->config->get('config_currency');
 		$cart_total = $order_cart['total'];
 		$validate_coin['wallets'] = array();
 		$validate_coin['description'] = $this->config->get('payment_coinremitter_description');
-
 		foreach ($data['wallets'] as $key => $value) {
 		
 			$get_fiat_rate_data = [
@@ -57,8 +54,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 
 		$json = array();
 		
-		if ($this->session->data['payment_method'] == 'coinremitter') {
-			
+		 if (isset($this->session->data['payment_method']) || $this->session->data['payment_method']['code'] == 'coinremitter.coinremitter') {	
 			if($this->request->post['coin'] != ''){
 
 				$this->load->model('extension/coinremitter/payment/coinremitter');
@@ -66,7 +62,6 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 				/*** Get wallet data from 'oc_coinremitter_wallet' with use of `coin` ***/
 				$coin = $this->request->post['coin'];
 				$wallet_info = $this->model_extension_coinremitter_payment_coinremitter->getWallet($coin);
-
 				if($wallet_info){
 
 					$api_key = $wallet_info['api_key'];
@@ -79,9 +74,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
                         'api_key' =>$api_key,
                         'password' => $api_password
                     ];
-					
-                    // die($this->obj_curl);
-                    $address_res = $this->obj_curl->commonApiCall($address_data);
+					$address_res = $this->obj_curl->commonApiCall($address_data);
                     
                     if(!empty($address_res) && isset($address_res['flag']) && $address_res['flag'] == 1){
 
@@ -456,10 +449,8 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 				}
 			}
 			if(!empty($post)){
-
-				if($post['type'] == 'receive'){
 				
-					
+				if($post['type'] == 'receive'){
 					$this->load->model('checkout/order');
 
 					$address = $post['address'];
@@ -469,23 +460,23 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 					$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrderByAddress($address);
 					
 					if(!empty($order_info)){
-						if($order_info['payment_status'] == 'pending' || $order_info['payment_status'] == 'under paid' ||$order_info['payment_status'] == 'paid' || $order_info['payment_status'] == 'over paid' || $order_info['payment_status'] == 'expired' ){
-							
+						
+					if($order_info['payment_status'] == 'pending' || $order_info['payment_status'] == 'under paid' ||$order_info['payment_status'] == 'paid' || $order_info['payment_status'] == 'over paid' || $order_info['payment_status'] == 'expired' ){
+
 							$orderId = $order_info['order_id'];
 
 							$order_cart = $this->model_checkout_order->getOrder($orderId);
-						
+							
 							if(!empty($order_cart)){
 
 								/*** check if expired time of invoice is defined or not. If defined then check if invoice has any transaction or not. If no transaction is found and invoice time is expired then change invoice status as expired  ***/
 
 								/*** Get webhook by address***/
 								$status = '';
-								if(isset($order_info['expire_on']) && $order_info['expire_on'] != '' && $order_info['payment_status'] == "expired"){
-									
+								if(isset($order_info['expire_on']) && $order_info['expire_on'] != ''&& $order_info['payment_status'] == "expired"){
 									if(time() >= strtotime($order_info['expire_on'])){
-											//update payment_status,status as expired
-											if($order_cart['order_status'] == 'Canceled'){
+										
+										if($order_cart['order_status'] == 'Canceled'){
 												/*** Update order history status to canceled, add comment  ***/
 						                        // $comments = 'Order #'.$orderId;
 						                        // $is_customer_notified = true;
@@ -503,6 +494,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 												);
 							
 												$getTransactionByAddressRes = $this->obj_curl->commonApiCall($get_trx_params);
+												
 												if(!empty($getTransactionByAddressRes) && isset($getTransactionByAddressRes['flag']) && $getTransactionByAddressRes['flag'] == 1){
 													if(!empty($getTransactionByAddressRes['data'])){
 														$getTrxByAddData = $getTransactionByAddressRes['data'];
@@ -563,10 +555,10 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 														}
 													}	
 												}
-											}
+											}	
 									}
 								}elseif($status == ''){
-									
+
 									$coin = $post['coin_short_name'];
 									$trxId = $post['id'];
 
@@ -591,7 +583,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 											if(isset($transaction['type']) && $transaction['type'] == 'receive'){
 
 												/*** now check if transaction exists in oc_coinremitter_webhook or not if does not exist then insert else update confirmations ***/
-												$total_paid = 0;
+											
 												$webhook_info = $this->model_extension_coinremitter_payment_coinremitter->getWebhook($transaction['id']);
 												if(empty($webhook_info)){
 													//insert record
@@ -610,6 +602,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 
 													$inserted_id = $this->model_extension_coinremitter_payment_coinremitter->addWebhook($insert_arr);
 													if($inserted_id > 0){
+
 														$total_paid_res = $this->model_extension_coinremitter_payment_coinremitter->getTotalPaidAmountByAddress($address);
 														$total_paid = 0;
 														if(isset($total_paid_res['total_paid']) && $total_paid_res['total_paid'] > 0 ){
@@ -624,19 +617,22 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 														}else if($total_paid != 0 && $total_paid < $order_info['crp_amount']){
 															$status = 'under paid';
 														}
-
-														if ($status != '') {
+														
+														if($status != ''){
 															//update payment_status,status
 															$update_arr = array('payment_status' => $status);
-															$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'], $update_arr);
+															$this->model_extension_coinremitter_payment_coinremitter->updateOrder($orderId,$update_arr);
 															$update_arr = array('status' => ucfirst($status));
-															$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'], $update_arr);
-															if ($status == 'paid' || $status == 'over paid' || $status == 'under paid') {
-																 $this->add_order_success_history($order_info['order_id']);
+															$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($orderId,$update_arr);
+															
+															if($status == 'paid' || $status == 'over paid' || $status == 'under paid'){
+																/*** Update order status as complete ***/
+																$this->add_order_success_history($orderId);
 															}
-														}	
+														}
+
 														$json['flag'] = 1;
-														$json['msg'] = "Inserted successfully1";	
+														$json['msg'] = "Inserted successfully";	
 													}else{
 														$json['flag'] = 0;
 														$json['msg'] = "system error. Please try again later.";	
@@ -681,6 +677,8 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 												}
 
 												/*** Get sum of paid amount of all transations which have 3 or more than 3 confirmtions  ***/
+												
+
 												/*** order paid process end ***/
 
 											}else{
@@ -738,13 +736,12 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 	private function add_order_success_history($orderId){
 		$this->load->model('checkout/order');
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
-		if(!empty($order_cart)){ // && $order_cart['order_status'] == 'Pending'
+		if(!empty($order_cart)){
 
 			//check if order id exists in coinremitter_order or not
 			$this->load->model('extension/coinremitter/payment/coinremitter');	
 			$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-		
-			if(!empty($order_info) && (strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'over paid' || strtolower($order_info['payment_status']) == 'under paid' || strtolower($order_info['payment_status']) == 'expired')){
+			if(!empty($order_info) && (strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'under paid' || strtolower($order_info['payment_status']) == 'over paid'|| strtolower($order_info['payment_status']) == 'expired')){
 
 				$getWebhookByAddressRes = $this->model_extension_coinremitter_payment_coinremitter->getWebhookByAddress($order_info['address']);	
 
@@ -797,7 +794,6 @@ class Coinremitter extends \Opencart\System\Engine\Controller {
 			        
 
 			        $this->load->model('checkout/order');
-					
 			      	if($order_cart['order_status'] == 'Pending'){
 						if($order_info['payment_status'] == 'over paid' || $order_info['payment_status'] == 'paid'){
 							$status =  ($this->config->get('payment_coinremitter_order_status') == 0)?1:5;

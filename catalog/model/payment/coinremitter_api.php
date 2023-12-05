@@ -1,6 +1,6 @@
 <?php
 namespace Opencart\Catalog\Model\Extension\Coinremitter\Payment;
-define('CR_BASE_URL','https://coinremitter.com/api/');
+define('CR_BASE_URL','https://coinremitter.com/');
 class CoinremitterApi extends \Opencart\System\Engine\Model
 {
     private static $instance;
@@ -14,7 +14,7 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
      * @param  object  $registry  Registry Object
      */
     public static function get_instance($registry)
-    {   
+    {
         if (is_null(static::$instance)) {
             static::$instance = new static($registry);
         }
@@ -32,7 +32,7 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
         
         $api_url = CR_BASE_URL.'api/';
         $api_version = 'v3';
-        $plugin_version ='0.0.2';
+        $plugin_version ='0.0.3';   
         $url = $api_url.$api_version.'/'.$endPoint;     
 
         $opencart_version = '';

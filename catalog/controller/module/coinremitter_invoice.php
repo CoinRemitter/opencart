@@ -1,6 +1,5 @@
 <?php
 namespace Opencart\Catalog\Controller\Extension\Coinremitter\Module;
-use Opencart\System\Library\Log;
 class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 
 	private $obj_curl;
@@ -51,7 +50,7 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 
 		$this->load->model('checkout/order');
 		$order_info = $this->model_checkout_order->getOrder($order_id);
-
+		
 		if ($order_info) {
 
 			$data['order_id'] = $order_id;
@@ -204,7 +203,11 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 			$this->document->addScript('extension/coinremitter/catalog/view/javascript/coinremitter/js/coinremitter_invoice.js');
 			$data['header'] = $this->load->controller('common/header');
 			$data['footer'] = $this->load->controller('common/footer');
-			$data['order_status'] = ($orderData['order_status_id'] == 1)?'':$orderData['order_status'];
+			if($orderData['order_status_id'] == 1){
+				$data['order_status'] ='';
+			}else{
+				$data['order_status'] = $orderData['order_status'];
+			}
 			
 			$this->response->setOutput($this->load->view('extension/coinremitter/module/coinremitter_invoice', $data));
 		}else{
@@ -277,18 +280,16 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 
 									/*** Insertion in coinremitter_webhook start ***/
 									/*** now check if transaction exists in oc_coinremitter_webhook or not if does not exist then insert else update confirmations ***/
-										
-									if ($trx['confirmations'] >= 3) {
+									if($trx['confirmations'] >= 3){
 										$total_paid = $total_paid + $trx['amount'];
 									}
-									$resTrxData[$i]['txId'] = substr($trx['txid'], 0, 20) . '...';
+									$resTrxData[$i]['txId'] = substr($trx['txid'],0,20).'...';
 									$resTrxData[$i]['explorer_url'] = $trx['explorer_url'];
 									$resTrxData[$i]['coin'] = $trx['coin_short_name'];
 									$resTrxData[$i]['paid_amount'] = $trx['amount'];
 									$resTrxData[$i]['confirmations'] = $trx['confirmations'];
-									$resTrxData[$i]['paid_date'] = date('M d, Y H:i:s', strtotime($trx['date']));
+									$resTrxData[$i]['paid_date'] = date('M d, Y H:i:s',strtotime($trx['date']));
 									$resTrxData[$i]['now_time'] = date('M d, Y H:i:s');
-
 									$webhook_info = $this->model_extension_coinremitter_payment_coinremitter->getWebhook($trx['id']);
 									if(empty($webhook_info)){
 										//insert record
@@ -306,7 +307,6 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 										);
 
 										$this->model_extension_coinremitter_payment_coinremitter->addWebhook($insert_arr);
-									
 										$total_paid = number_format($total_paid, 8, '.', '');
 
 										$status = '';
@@ -320,16 +320,13 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 										if ($status != '') {
 											//update payment_status,status
 											$update_arr = array('payment_status' => $status);
-
-											
 											$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'], $update_arr);
 											$update_arr = array('status' => ucfirst($status));
 											$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'], $update_arr);
 											if ($status == 'paid' || $status == 'over paid' || $status == 'under paid') {
 												$this->add_order_success_history($order_info['order_id']);
 											}
-										}	
-
+										}
 									}else{
 										//update confirmations if confirmation is less than 3
 										if($webhook_info['confirmations'] < 3){
@@ -341,6 +338,8 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 									}
 
 									/*** Insertion in coinremitter_webhook end ***/
+
+									
 								}
 							}
 
@@ -500,36 +499,35 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 						'expire_on' => '',
 						'is_simply_display_detail' => 1,
 						'order_status' => ucfirst($order_info['payment_status'])
-					);
-					$total_paid = number_format($total_paid,8,'.','');
-
+					);	
 					$status = '';
-					if($total_paid == $order_info['crp_amount']){
-						$status = 'paid';
-					}else if($total_paid > $order_info['crp_amount']){
-						$status = 'over paid';
-					}else if($total_paid != 0 && $total_paid < $order_info['crp_amount']){
-						$status = 'under paid';
-					}
-					
-					if($status != ''){
-						//update payment_status,status
-						$update_arr = array('payment_status' => $status);
-						$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'],$update_arr);
-						$update_arr = array('status' => ucfirst($status));
-						$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'],$update_arr);
-
-						if($status == 'paid' || $status == 'over paid'){
-
-							$json['flag'] = 1;
-							$json['msg'] = "Success";
-							$json['is_success'] = 1;
-							
-							$this->response->addHeader('Content-Type: application/json');
-							$this->response->setOutput(json_encode($json));	
-							return false;
+						if($total_paid == $order_info['crp_amount']){
+							$status = 'paid';
+						}else if($total_paid > $order_info['crp_amount']){
+							$status = 'over paid';
+						}else if($total_paid != 0 && $total_paid < $order_info['crp_amount']){
+							$status = 'under paid';
 						}
-					}
+						$json['status_first'] = $status;
+						
+						if($status != ''){
+							//update payment_status,status
+							$update_arr = array('payment_status' => $status);
+							$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'],$update_arr);
+							$update_arr = array('status' => ucfirst($status));
+							$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'],$update_arr);
+							if($status == 'paid' || $status == 'over paid'){
+								
+								$json['status_success_final'] = $status;
+								$json['flag'] = 1;
+								$json['msg'] = "Success";
+								$json['is_success'] = 1;
+								
+								$this->response->addHeader('Content-Type: application/json');
+								$this->response->setOutput(json_encode($json));	
+								return false;
+							}
+						}
 
 					$this->response->addHeader('Content-Type: application/json');
 					$this->response->setOutput(json_encode($json));
@@ -566,7 +564,7 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 		}
 		$this->load->model('checkout/order');
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
-		
+
 		if($order_cart['order_status'] != 'Canceled'){
 
 			if(isset($order_info['expire_on']) && $order_info['expire_on'] != ''){
@@ -594,11 +592,10 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 							);
 
 							$getTransactionByAddressRes = $this->obj_curl->commonApiCall($get_trx_params);
-							
+
 							if(!empty($getTransactionByAddressRes) && isset($getTransactionByAddressRes['flag']) && $getTransactionByAddressRes['flag'] == 1){
-								
 								if(empty($getTransactionByAddressRes['data'])){
-									//update payment_status,status as expired
+								//update payment_status,status as expired
 									$status = 'expired';
 									$update_arr = array('payment_status' => $status);
 									$this->model_extension_coinremitter_payment_coinremitter->updateOrder($orderId,$update_arr);
@@ -609,7 +606,8 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 									$comments = 'Order #'.$orderId;
 									$is_customer_notified = true;
 									$this->model_checkout_order->addHistory($orderId, 7, $comments, $is_customer_notified);  // 7 = Canceled
-									return new \Opencart\System\Engine\Action('checkout/failure');	
+
+									return new \Opencart\System\Engine\Action('checkout/failure');
 								}else{									
 									$getTrxByAddData = $getTransactionByAddressRes['data'];
 		
@@ -658,25 +656,8 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 										}		
 									}
 									return new \Opencart\System\Engine\Action('checkout/failure');	
-								}	
-							}
-							// if(!empty($getTransactionByAddressRes) && isset($getTransactionByAddressRes['flag']) && $getTransactionByAddressRes['flag'] == 1 && empty($getTransactionByAddressRes['data']) ){
-
-							// 	//update payment_status,status as expired
-							// 	$status = 'expired';
-							// 	$update_arr = array('payment_status' => $status);
-							// 	$this->model_extension_coinremitter_payment_coinremitter->updateOrder($orderId,$update_arr);
-							// 	$update_arr = array('status' => ucfirst($status));
-							// 	$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($orderId,$update_arr);
-
-							// 	/*** Update order history status to canceled, add comment  ***/
-			                //     $comments = 'Order #'.$orderId;
-			                //     $is_customer_notified = true;
-			                //     $this->model_checkout_order->addHistory($orderId, 7, $comments, $is_customer_notified);  // 7 = Canceled
-
-			                //     return new \Opencart\System\Engine\Action('checkout/failure');	
-							// }
-							else{
+								}
+							}else{
 								return new \Opencart\System\Engine\Action('error/not_found');	
 							}
 						}else{
@@ -718,7 +699,7 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
 		
 		if(strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'over paid'){
-			//$this->add_order_success_history($orderId);
+			// $this->add_order_success_history($orderId);
 			return new \Opencart\System\Engine\Action('checkout/success');	
 		}else{
 			return new \Opencart\System\Engine\Action('error/not_found');	
@@ -734,18 +715,14 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 
 	private function add_order_success_history($orderId){
 
+
 		$this->load->model('checkout/order');
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
-		// if(!empty($order_cart) && $order_cart['order_status'] == 'Pending'){
-			if(!empty($order_cart)){
+		if(!empty($order_cart)){
 
 			//check if order id exists in coinremitter_order or not
 			$this->load->model('extension/coinremitter/payment/coinremitter');	
 			$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-			
-			$log = new Log('system.log');
-			$log->write(json_encode($order_info));
-			
 			if(!empty($order_info) && (strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'over paid' || strtolower($order_info['payment_status']) == 'under paid' || strtolower($order_info['payment_status']) == 'expired')){
 
 				$getWebhookByAddressRes = $this->model_extension_coinremitter_payment_coinremitter->getWebhookByAddress($order_info['address']);	
@@ -798,19 +775,19 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 			        $comments .= $pending.' '.$order_info['coin'];
 
 			        
-
 			        $this->load->model('checkout/order');
-			        // $this->model_checkout_order->addHistory($orderId, 5, $comments);  // 5 = Complete
+
 					if($order_cart['order_status'] == 'Pending'){
 						if($order_info['payment_status'] == 'over paid' || $order_info['payment_status'] == 'paid'){
 							$status =  ($this->config->get('payment_coinremitter_order_status') == 0)?1:5;
 							$this->model_checkout_order->addHistory($orderId, $status, $comments);  // 5 = Complete
 						}else{
-							$this->model_checkout_order->addHistory($orderId, 1, $comments);  //1 = pending
+							$this->model_checkout_order->addHistory($orderId, 1, $comments);  // 1 = pending
 						}
 					}else{
 						$status_id = $this->db->query("SELECT *  FROM " . DB_PREFIX . "order_status where name LIKE '%" . $order_cart['order_status'] . "%'");
-						$this->model_checkout_order->addHistory($orderId, $status_id->row['order_status_id'], $comments);  // 5 = pending
+											
+						$this->model_checkout_order->addHistory($orderId, $status_id->row['order_status_id'], $comments);
 					}
 				}
 			}
