@@ -1,79 +1,70 @@
-<?php
+<?php 
 
 /*** We create a file named coinremitter.php’ in the admin/controller/extension/module/ folder. Since we named the file coinremitter.php and put it at admin/controller/extension/module/ folder, the controller class name will be ControllerExtensionModuleCoinremitter which inherits the Controller. ***/
 
 namespace Opencart\Admin\Controller\Extension\Coinremitter\Module;
-
-use Opencart\Admin\Controller\Common\Pagination;
-
-define("MINIMUM_USD_AMOUNT", 5);
-class Coinremitter extends \Opencart\System\Engine\Controller
-{
-
+use Opencart\Admin\Controller\Common\Pagination; 
+class Coinremitter extends \Opencart\System\Engine\Controller {
+	
 	/*** private error property for this class only which will hold the error message if occurs any. ***/
 	private $error = array();
+
 	/*** install_module will install this module also which contains wallets stuff.This is called from controller->extension->payment->coinremitter->install(). We are installing here because users dont need to install manually. This method is automatically called when user install coinremitter payment module from payment extensions. This method is different from above this page's install() (if defined) ***/
-	public function install()
-	{
+	public function install(){
 		$this->load->model('setting/extension');
-		$this->model_setting_extension->install('module', 'coinremitter', 'coinremitter');
+		$this->model_setting_extension->install('module','coinremitter','coinremitter');
 
 		$this->load->model('setting/extension');
-		$this->model_setting_extension->install('module', 'coinremitter', 'coinremitter');
-
+		$this->model_setting_extension->install('module','coinremitter','coinremitter');
+		
 		//add event start
 		$this->load->model('setting/event');
 		$this->model_setting_event->deleteEventByCode('coinremitter');
-		$this->model_setting_event->deleteEventByCode('coinremitter_admin_order_list');
-		$this->model_setting_event->deleteEventByCode('coinremitter_admin_order_detail');
-		$this->model_setting_event->deleteEventByCode('coinremitter_user_order_list');
-		$this->model_setting_event->deleteEventByCode('coinremitter_user_order_detail');
 		$data = array(
-			'code' => 'coinremitter_admin_order_list',
-			'description' => 'Display coinremitter order list',
+			'code' => 'coinremitter',
+			'description' => '',
 			'trigger' => 'admin/view/sale/order_list/before',
-			'action' => 'extension/coinremitter/module/view_sale_order_list_before',
+			'action' => 'extension/module/coinremitter/view_sale_order_list_before',
 			'status' => 1,
 			'sort_order' => 1
 		);
 		/*** Event will fire when admin clicked on order list   ***/
 		$this->model_setting_event->addEvent($data);
-
+		
 		$data = array(
-			'code' => 'coinremitter_admin_order_detail',
-			'description' => 'Display coinremitter order detail',
-			// 'trigger' => 'admin/view/sale/order_info/before',
-			'trigger' => 'admin/controller/sale/order.info/before',
-			'action' => 'extension/coinremitter/admin/controller/module/coinremitter.adminOrderDetail',
+			'code' => 'coinremitter',
+			'description' => '',
+			'trigger' => 'admin/view/sale/order_info/before',
+			'action' => 'extension/module/coinremitter/view_sale_order_info_before',
 			'status' => 1,
 			'sort_order' => 1
 		);
 		/*** Event will fire when admin clicked on particular order detail  ***/
-		$this->model_setting_event->addEvent($data);
+	    $this->model_setting_event->addEvent($data);
 
 
 		$data = array(
-			'code' => 'coinremitter_user_order_list',
-			'description' => 'Display coinremitter order list',
+			'code' => 'coinremitter',
+			'description' => '',
 			'trigger' => 'catalog/view/account/order_list/before',
-			'action' => 'extension/coinremitter/module/view_account_order_list_before',
+			'action' => 'extension/module/coinremitter/view_account_order_list_before',
 			'status' => 1,
 			'sort_order' => 1
 		);
-		/*** Event will fire when user clicked on order list   ***/
-		$this->model_setting_event->addEvent($data);
+	    /*** Event will fire when user clicked on order list   ***/
+	    $this->model_setting_event->addEvent($data);
 
 
 		$data = array(
-			'code' => 'coinremitter_user_order_detail',
-			'description' => 'Display coinremitter order detail',
+			'code' => 'coinremitter',
+			'description' => '',
 			'trigger' => 'catalog/view/account/order_info/before',
-			'action' => 'extension/coinremitter/module/view_account_order_info_before',
+			'action' => 'extension/module/coinremitter/view_account_order_info_before',
 			'status' => 1,
 			'sort_order' => 1
 		);
-		/*** Event will fire when user clicked on particular order detail  ***/
-		$this->model_setting_event->addEvent($data);
+	    /*** Event will fire when user clicked on particular order detail  ***/
+	    $this->model_setting_event->addEvent($data);
 
 		//add event end
 
@@ -86,10 +77,10 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 
 			$json['success'] = $this->language->get('text_success');
 
-			$default_settings = array(
-				'module_coinremitter_title' => 'Coinremitter',
-				'module_coinremitter_status' => 1,
-			);
+			   	$default_settings = array(
+		    		'module_coinremitter_title' => 'Coinremitter',
+		    		'module_coinremitter_status' => 1,
+		    	);
 			$this->model_setting_setting->editSetting('module_coinremitter', $default_settings);
 		}
 
@@ -99,23 +90,22 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$this->model_user_user_group->addPermission($this->user->getGroupId(), 'modify', 'extension/coinremitter/module/coinremitter');
 	}
 
-	public function view_sale_order_list_before(&$route, &$args, &$output)
-	{
-
+	public function view_sale_order_list_before(&$route, &$args, &$output){
+		
 		$this->load->model('extension/coinremitter/module/coinremitter');
 
 		$orderIds = [];
-		$orders = $args['orders'] ?? [];
+		$orders = $args['orders']??[];
 		foreach ($orders as $order) {
 			$orderId = $order['order_id'];
 			/*** check if order is of coinremitter's order or not ***/
 			$order_detail = $this->model_extension_coinremitter_module_coinremitter->getOrder($orderId);
-			if ($order_detail) {
+			if($order_detail){
 				$orderIds[] = $orderId;
 			}
 		}
 
-		if (!empty($orderIds)) {
+		if(!empty($orderIds)){
 			$json = array();
 			$url = HTTPS_CATALOG;
 
@@ -143,18 +133,19 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 
 			curl_close($curl);
 		}
+
 	}
 
-	public function adminOrderDetail(&$route, &$args, &$output)
-	{
+	public function view_sale_order_info_before(&$route, &$args, &$output){
+
 		$this->load->model('extension/coinremitter/module/coinremitter');
 
-		$orderId = $args['order_id'] ?? 0;
+		$orderId = $args['order_id']??0;
 
 		/*** check if order is of coinremitter's order or not ***/
 		$order_detail = $this->model_extension_coinremitter_module_coinremitter->getOrder($orderId);
 
-		if ($order_detail) {
+		if($order_detail){
 
 			$json = array();
 
@@ -184,6 +175,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 
 			curl_close($curl);
 		}
+	
 	}
 
 
@@ -192,14 +184,13 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 	 * Then Document title is set
 	 * Then model file is loaded
 	 * Then protected method getList is called which list out all the wallets. Thus default page is the listing page because we called getList in index() method. ***/
-	public function index()
-	{
+	public function index(){
 		$this->load->language('extension/coinremitter/module/coinremitter');
 		$this->document->setTitle($this->language->get('heading_title'));
 		$this->load->model('extension/coinremitter/module/coinremitter');
 		$this->getList();
 	}
-
+	
 	/*** add() - This method is called when someone clicks the add button in the listing page and the save button on the form. If the add button is clicked then it shows the forms with blank fields. If the save button is clicked on the form then it validates the data and saves data in the database and redirects to the listing page. ***/
 	public function add()
 	{
@@ -208,51 +199,38 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$this->load->language('extension/coinremitter/module/coinremitter');
 		$this->document->setTitle($this->language->get('heading_title'));
 		$this->load->model('extension/coinremitter/module/coinremitter');
-
+		
 		/*** This is the section when someone clicks save button while adding the wallet. It checks if the request method is post and if form is validated. Then it will call the addWallet method of model class which save the new wallet to the database ***/
-		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validateForm()) {
-
+		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validateForm()){
+			
 			/*** check if api_key and password is valid for selected coin ***/
-			$param = $this->request->post;
-			$walletRes = $this->checkCredentials(['api_key' => $param['api_key'], 'password' => $param['password']]);
-			if ($walletRes) {
+			$add_fields = $this->request->post;
+			$ccRes = $this->checkCredentials($add_fields);
 
-				$priceInUsd = $this->getPriceInUsd($walletRes['coin_symbol']);
-				$usdMinValue = $walletRes['minimum_deposit_amount'] * $priceInUsd;
-				$baseFiatCurrency = $this->config->get('config_currency');
-				$minimumInvFiatAmount = $this->currency->convert($usdMinValue, 'USD', $baseFiatCurrency);
-				$minimumInvFiatAmount = number_format($minimumInvFiatAmount, 2, '.', '');
-				if ($param['minimum_invoice_amount'] < $minimumInvFiatAmount) {
-					$this->error['minimum_invoice_amount'] = $this->language->get('error_minimum_value') . $minimumInvFiatAmount . ' ' . $baseFiatCurrency;
-					$this->getForm();
-					return;
-				}
+			if($ccRes){
 				// load coinremitter library
 				$this->load->model('extension/coinremitter/payment/coinremitter_api');
 				$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 
-				$isWalletExists = $this->model_extension_coinremitter_module_coinremitter->getWalletByCoin($walletRes['coin_symbol']);
-				if (empty($isWalletExists)) {
-					$insertData = array(
-						'wallet_name' => $walletRes['wallet_name'],
-						'coin_symbol' => $walletRes['coin_symbol'],
-						'coin_name' => $walletRes['coin'],
-						'api_key' => $param['api_key'],
-						'password' => $obj_curl->encrypt($param['password']),
-						'minimum_invoice_amount' => $param['minimum_invoice_amount'],
-						'exchange_rate_multiplier' => $param['exchange_rate_multiplier'],
-						'unit_fiat_amount' => $priceInUsd,
-						'base_fiat_symbol' => $baseFiatCurrency,
-					);
-					$this->model_extension_coinremitter_module_coinremitter->addWallet($insertData);
+				$add_fields['balance'] = number_format($ccRes['balance'],8,'.',''); 
+				$add_fields['name'] = $ccRes['wallet_name']; 
+				$add_fields['coin_name'] = $ccRes['coin_name']; 
+
+
+
+
+				$add_fields['password'] = $obj_curl->encrypt($add_fields['password']);
+				$getCoin = $this->db->query("SELECT *  FROM " . DB_PREFIX . "coinremitter_wallets where coin = '" . $add_fields['coin'] . "'");
+				if($getCoin->num_rows == 0){
+					$this->model_extension_coinremitter_module_coinremitter->addWallet($add_fields);
 					$this->session->data['success'] = $this->language->get('text_success');
 				}
 				/*download coin image if not exists*/
-				$coin_image_path = str_replace('/admin/index.php?route=', '/', $this->url->link('extension/coinremitter/admin/view/image/coinremitter/')) . $walletRes['coin_symbol'] . '.png';
-				if (!file_exists($coin_image_path)) {
-					$url = CR_BASE_URL . "assets/images/coins/32x32/" . strtoupper($walletRes['coin_symbol']) . ".png";
+				$coin_image_path = str_replace('/admin/index.php?route=','/',$this->url->link('extension/coinremitter/admin/view/image/coinremitter/')).$add_fields['coin'].'.png';
+				if(!file_exists($coin_image_path)){
+					$url = CR_BASE_URL."assets/img/home-coin/coin/".strtolower($add_fields['coin']).".png";
 					if (getimagesize($url)) {
-						copy($url, $coin_image_path);
+						copy($url,$coin_image_path);
 					}
 				}
 
@@ -269,6 +247,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 				/*** This line of code is to redirect to the listing page ***/
 				$this->response->redirect($this->url->link('extension/coinremitter/module/coinremitter', 'user_token=' . $this->session->data['user_token'] . $url, true));
 			}
+			
 		}
 		/*** This is to show the form ***/
 		$this->getForm();
@@ -281,58 +260,50 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$this->document->setTitle($this->language->get('heading_title'));
 		$this->load->model('extension/coinremitter/module/coinremitter');
 		/*** This is the section when someone clicks edit button and save the wallet. It checks if the request method is post and if form is validated. Then it will call the editWallet method of model class which save the updated testimonial to the database ***/
-		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validateForm()) {
+		if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validateForm()){
 
 			// load coinremitter library
 			$this->load->model('extension/coinremitter/payment/coinremitter_api');
 			$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 
+			$add_column_if_not_exists = $this->model_extension_coinremitter_module_coinremitter->checkIsValidColumn();
+
 			/*** check if api_key and password is valid for selected coin ***/
-			$param = $this->request->post;
-			$walletRes = $this->checkCredentials(['api_key' => $param['api_key'], 'password' => $param['password']]);
-			if ($walletRes) {
-				$wallet = $this->model_extension_coinremitter_module_coinremitter->getWallet($this->request->get['id']);
-				if (!empty($wallet)) {
-					if ($wallet['coin_symbol'] != $walletRes['coin_symbol']) {
+			$edit_fields = $this->request->post;
+			$ccRes = $this->checkCredentials($edit_fields);
 
-						$this->error['api_key'] = $this->language->get('error_coin_exists');
-					} else {
+			if($ccRes){
 
-						$priceInUsd = $this->getPriceInUsd($walletRes['coin_symbol']);
-						$usdMinValue = $walletRes['minimum_deposit_amount'] * $priceInUsd;
-						$baseFiatCurrency = $this->config->get('config_currency');
-						$minimumInvFiatAmount = $this->currency->convert($usdMinValue, 'USD', $baseFiatCurrency);
-						$minimumInvFiatAmount = number_format($minimumInvFiatAmount, 2, '.', '');
-						if ($param['minimum_invoice_amount'] < $minimumInvFiatAmount) {
-							$this->error['minimum_invoice_amount'] = $this->language->get('error_minimum_value') . $minimumInvFiatAmount . ' ' . $baseFiatCurrency;
-							$this->getForm();
-							return;
-						}
-						$updateData = array(
-							'coin_symbol' => $walletRes['coin_symbol'],
-							'coin_name' => $walletRes['coin'],
-							'wallet_name' => $walletRes['wallet_name'],
-							'api_key' => $param['api_key'],
-							'password' => $obj_curl->encrypt($param['password']),
-							'minimum_invoice_amount' => $param['minimum_invoice_amount'],
-							'exchange_rate_multiplier' => $param['exchange_rate_multiplier'],
-							'unit_fiat_amount' => $priceInUsd,
-							'base_fiat_symbol' => $baseFiatCurrency,
-						);
-						$this->model_extension_coinremitter_module_coinremitter->editWallet($this->request->get['id'], $updateData);
-						$this->session->data['success'] = $this->language->get('text_success');
-						$url = '';
-						if (isset($this->request->get['sort'])) {
-							$url .= '&sort=' . $this->request->get['sort'];
-						}
-						if (isset($this->request->get['order'])) {
-							$url .= '&order=' . $this->request->get['order'];
-						}
-						if (isset($this->request->get['page'])) {
-							$url .= '&page=' . $this->request->get['page'];
-						}
-						/*** This line of code is to redirect to the listing page ***/
-						$this->response->redirect($this->url->link('extension/coinremitter/module/coinremitter', 'user_token=' . $this->session->data['user_token'] . $url, true));
+				$edit_fields['balance'] = number_format($ccRes['balance'],8,'.',''); 
+				$edit_fields['name'] = $ccRes['wallet_name']; 
+				$edit_fields['coin_name'] = $ccRes['coin_name']; 
+				$edit_fields['password'] = $obj_curl->encrypt($edit_fields['password']);
+				$edit_fields['is_valid'] = 1;
+				$this->model_extension_coinremitter_module_coinremitter->editWallet($this->request->get['id'], $edit_fields);
+				$this->session->data['success'] = $this->language->get('text_success');
+				$url = '';
+				if (isset($this->request->get['sort'])) {
+					$url .= '&sort=' . $this->request->get['sort'];
+				}
+				if (isset($this->request->get['order'])) {
+					$url .= '&order=' . $this->request->get['order'];
+				}
+				if (isset($this->request->get['page'])) {
+					$url .= '&page=' . $this->request->get['page'];
+				}
+				/*** This line of code is to redirect to the listing page ***/
+				$this->response->redirect($this->url->link('extension/coinremitter/module/coinremitter', 'user_token=' . $this->session->data['user_token'] . $url, true));
+			}else{
+				//if wallet deleted from coinremitter merchant site then update balance as 0 and is_valid = 0 in opencart db 
+				$wallet_info = $this->model_extension_coinremitter_module_coinremitter->getWallet($this->request->get['id']);
+				if(is_array($wallet_info)){
+					$wallet_info['password'] = $obj_curl->decrypt($wallet_info['password']);
+					$ccRes = $this->checkCredentials($wallet_info);
+					if(!$ccRes){
+						$edit_fields = array();
+						$edit_fields['balance'] = 0;
+						$edit_fields['is_valid'] = 0;
+						$this->model_extension_coinremitter_module_coinremitter->editWalletStatus($this->request->get['id'], $edit_fields);
 					}
 				}
 			}
@@ -344,11 +315,44 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 
 	/*** refresh() - refresh method is called when someone clicks the refresh button in the listing page of the wallet which will refresh the all wallets balances with api call and update the balance in their respective wallet and redirects to the listing page. ***/
 	public function refresh()
-	{
+	{	
 		$this->load->language('extension/coinremitter/module/coinremitter');
 		$this->load->model('extension/coinremitter/module/coinremitter');
 		// load coinremitter library
 		$this->load->model('extension/coinremitter/payment/coinremitter_api');
+		$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
+
+		$add_column_if_not_exists = $this->model_extension_coinremitter_module_coinremitter->checkIsValidColumn();
+
+		/*** Get all wallet list ***/
+		$allWallets = $this->model_extension_coinremitter_module_coinremitter->getAllWallets();
+
+		foreach ($allWallets as $wallet) {
+			$wallet['password'] = $obj_curl->decrypt($wallet['password']);
+			$ccRes = $this->checkCredentials($wallet);
+
+			if ($ccRes) {
+
+				$edit_fields = array();
+				$edit_fields['balance'] = number_format($ccRes['balance'],8,'.',''); 
+				$edit_fields['name'] = $ccRes['wallet_name']; 
+				$edit_fields['coin_name'] = $ccRes['coin_name']; 
+				$edit_fields['api_key'] = $wallet['api_key']; 
+				$edit_fields['exchange_rate_multiplier'] = $wallet['exchange_rate_multiplier']; 
+				$edit_fields['minimum_value'] = $wallet['minimum_value']; 
+				$edit_fields['password'] = $obj_curl->encrypt($wallet['password']);
+				$edit_fields['is_valid'] = 1;
+
+				$this->model_extension_coinremitter_module_coinremitter->editWallet($wallet['id'], $edit_fields);
+			}else{
+				//if wallet deleted from coinremitter merchant site then update balance as 0 and is_valid = 0 
+				$edit_fields = array();
+				$edit_fields['balance'] = 0;
+				$edit_fields['is_valid'] = 0;
+				$this->model_extension_coinremitter_module_coinremitter->editWalletStatus($wallet['id'], $edit_fields);
+			
+			}
+		}
 		$this->error['warning'] = null;
 		$this->session->data['success'] = $this->language->get('text_success');
 		$this->getList();
@@ -383,14 +387,13 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 
 	/*** getList() - This method creates logic to create a listing and pass variables to template twig files where they are manipulated and shown in the table.
 	the listing page will look like in the image url https://webocreation.com/blog/wp-content/uploads/2019/09/testimonial-listings.jpg  ***/
-	protected function getList()
-	{
+	protected function getList() {
 
-
+		
 		if (isset($this->request->get['sort'])) {
 			$sort = $this->request->get['sort'];
 		} else {
-			$sort = 'coin_symbol';
+			$sort = 'coin';
 		}
 		if (isset($this->request->get['order'])) {
 			$order = $this->request->get['order'];
@@ -441,38 +444,50 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		/*** This is to get filtered wallets ***/
 		$results = $this->model_extension_coinremitter_module_coinremitter->getWallets($filter_data);
 		/*** This is how we set data to the wallets array, we can get many variables in the $results variables so we separate what is needed in template twig file and pass them to it ***/
-
-		$baseFiatCurrency = $this->config->get('config_currency');
 		
-		foreach ($results as $result) {	
-			$minimumInvFiatAmount = $result['minimum_invoice_amount'];
-			if($result['base_fiat_symbol'] != $baseFiatCurrency){
-				$minimumInvFiatAmount = $this->currency->convert($result['minimum_invoice_amount'], $result['base_fiat_symbol'], $baseFiatCurrency);
-				$this->model_extension_coinremitter_module_coinremitter->updateWalletMinInvRate($result['id'],array('minimum_invoice_amount' => $minimumInvFiatAmount, 'base_fiat_symbol' => $baseFiatCurrency));
-			}
+		foreach ($results as $result) {
 			$this->load->model('extension/coinremitter/payment/coinremitter_api');
 			$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 			$result['password'] = $obj_curl->decrypt($result['password']);
 			$ccRes = $this->checkCredentials($result);
-			if ($ccRes) {
-				if ($ccRes['balance'] > 0) {
-					$balance = number_format($ccRes['balance'], 8, '.', '');
-				} else {
+			if($ccRes){
+				if($ccRes['balance'] > 0){
+					$balance = number_format($ccRes['balance'],8,'.','');
+				}else{
 					$balance = 0;
 				}
-			} else {
+				$wallet_info = $this->model_extension_coinremitter_module_coinremitter->getWallet($result['id']);
+				if(is_array($wallet_info)){
+					$wallet_info['password'] = $obj_curl->decrypt($wallet_info['password']);
+					$ccRes = $this->checkCredentials($wallet_info);
+					if(!$ccRes){
+						$edit_fields = array();
+						$edit_fields['balance'] = $balance;
+						$edit_fields['is_valid'] = 1;
+						$this->model_extension_coinremitter_module_coinremitter->editWalletStatus($result['id'], $edit_fields);
+					}
+				}
+			}else{
 				$balance = '<span title="Invalid API key or password. Please check credential again."><i class="fa fa-exclamation-circle"></i></span>';
+				$wallet_info = $this->model_extension_coinremitter_module_coinremitter->getWallet($result['id']);
+				if(is_array($wallet_info)){
+					$wallet_info['password'] = $obj_curl->decrypt($wallet_info['password']);
+					$ccRes = $this->checkCredentials($wallet_info);
+					if(!$ccRes){
+						$edit_fields = array();
+						$edit_fields['balance'] = 0;
+						$edit_fields['is_valid'] = 0;
+						$this->model_extension_coinremitter_module_coinremitter->editWalletStatus($result['id'], $edit_fields);
+					}
+				}
 			}
 			$data['wallets'][] = array(
 				'id' => $result['id'],
-				'logo' 		=> str_replace('/admin/index.php?route=', '/', $this->url->link('extension/coinremitter/admin/view/image/coinremitter/')) . $result['coin_symbol'] . '.png',
-				'coin_symbol'      => $result['coin_symbol'],
+				'logo' 		=> str_replace('/admin/index.php?route=','/',$this->url->link('extension/coinremitter/admin/view/image/coinremitter/')).$result['coin'].'.png',
+				'coin'      => $result['coin'],
 				'coin_name' => $result['coin_name'],
-				'wallet_name' => $result['wallet_name'],
+				'wallet_name' => $result['name'],
 				'balance' => $balance,
-				'minimum_invoice_amount' => number_format($minimumInvFiatAmount, 2, '.', ''),
-				'fiat_symbol' => $this->config->get('config_currency'),
-				'exchange_rate_multiplier' => $result['exchange_rate_multiplier'],
 				'created_at' => date('d-m-Y H:i:s', strtotime($result['created_at'])),
 				'edit'        => $this->url->link('extension/coinremitter/module/coinremitter|edit', 'user_token=' . $this->session->data['user_token'] . '&id=' . $result['id'] . $url, true),
 				'delete'      => $this->url->link('extension/coinremitter/module/coinremitter|delete', 'user_token=' . $this->session->data['user_token'] . '&id=' . $result['id'] . $url, true)
@@ -512,7 +527,13 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		if (isset($this->request->get['order'])) {
 			$url .= '&order=' . $this->request->get['order'];
 		}
-		
+		/*** Pagination in Opencart they are self explainatory ***/
+		// $pagination = new Pagination();
+		// $pagination->total = $wallets_total;
+		// $pagination->page = $page;
+		// $pagination->limit = $this->config->get('config_pagination_admin');
+		// $pagination->url = $this->url->link('extension/coinremitter/module/coinremitter', 'user_token=' . $this->session->data['user_token'] . $url . '&page={page}', true);
+		// $data['pagination'] = $pagination->render();
 		$data['results'] = sprintf($this->language->get('text_pagination'), ($wallets_total) ? (($page - 1) * $this->config->get('config_pagination_admin')) + 1 : 0, ((($page - 1) * $this->config->get('config_pagination_admin')) > ($wallets_total - $this->config->get('config_pagination_admin'))) ? $wallets_total : ((($page - 1) * $this->config->get('config_pagination_admin')) + $this->config->get('config_pagination_admin')), $wallets_total, ceil($wallets_total / $this->config->get('config_pagination_admin')));
 		$data['sort'] = $sort;
 		$data['order'] = $order;
@@ -521,12 +542,12 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['footer'] = $this->load->controller('common/footer');
 		/*** Set the response output ***/
-
-		$webhook_url_link = str_replace('/admin/', '/', $this->url->link('extension/coinremitter/payment/coinremitter|webhook'));
+		
+		$webhook_url_link = str_replace('/admin/','/',$this->url->link('extension/coinremitter/payment/coinremitter|webhook'));
 		$data['webhook_url_msg'] = "For all these wallets, add this <strong>" . $webhook_url_link . "</strong> URL in the Webhook URL field of your Coinremitter wallet's General Settings.";
-		$data['button_add'] = "Add Wallet";
-		$data['button_refresh'] = "Refresh wallet list";
-		$data['button_delete'] = "Delete Wallet";
+		$data['button_add']="Add Wallet";
+		$data['button_refresh']="Refresh wallet list";
+		$data['button_delete']="Delete Wallet";
 		$this->response->setOutput($this->load->view('extension/coinremitter/module/coinremitter_list', $data));
 	}
 
@@ -555,10 +576,10 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		} else {
 			$data['error_exchange_rate_multiplier'] = array();
 		}
-		if (isset($this->error['minimum_invoice_amount'])) {
-			$data['error_minimum_invoice_amount'] = $this->error['minimum_invoice_amount'];
+		if (isset($this->error['minimum_value'])) {
+			$data['error_minimum_value'] = $this->error['minimum_value'];
 		} else {
-			$data['error_minimum_invoice_amount'] = array();
+			$data['error_minimum_value'] = array();
 		}
 		$url = '';
 		if (isset($this->request->get['sort'])) {
@@ -597,42 +618,91 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 			$wallet_info['password'] = $obj_curl->decrypt($wallet_info['password']);
 		}
 		$data['user_token'] = $this->session->data['user_token'];
-
-		/*** This is for api_key field ***/
+		
+		/*** This is for api_key field ***/		
 		if (isset($this->request->post['api_key'])) {
 			$data['api_key'] = $this->request->post['api_key'];
 		} elseif (!empty($wallet_info)) {
 			$data['api_key'] = $wallet_info['api_key'];
 		} else {
 			$data['api_key'] = '';
-		}
+		}			
 
-		/*** This is for password field ***/
+		/*** This is for password field ***/		
 		if (isset($this->request->post['password'])) {
 			$data['password'] = $this->request->post['password'];
 		} elseif (!empty($wallet_info)) {
 			$data['password'] = $wallet_info['password'];
 		} else {
 			$data['password'] = '';
-		}
+		}	
 
-		/*** This is for exchange_rate_multiplier field ***/
+		/*** This is for exchange_rate_multiplier field ***/		
 		if (isset($this->request->post['exchange_rate_multiplier'])) {
 			$data['exchange_rate_multiplier'] = $this->request->post['exchange_rate_multiplier'];
 		} elseif (!empty($wallet_info)) {
 			$data['exchange_rate_multiplier'] = $wallet_info['exchange_rate_multiplier'];
 		} else {
 			$data['exchange_rate_multiplier'] = '1';
-		}
-
-		/*** This is for minimum_value field ***/
-		if (isset($this->request->post['minimum_invoice_amount'])) {
-			$data['minimum_invoice_amount'] = $this->request->post['minimum_invoice_amount'];
+		}			
+		
+		/*** This is for minimum_value field ***/		
+		if (isset($this->request->post['minimum_value'])) {
+			$data['minimum_value'] = $this->request->post['minimum_value'];
 		} elseif (!empty($wallet_info)) {
-			$data['minimum_invoice_amount'] = $wallet_info['minimum_invoice_amount'];
+			$data['minimum_value'] = $wallet_info['minimum_value'];
 		} else {
-			$data['minimum_invoice_amount'] = '0';
+			$data['minimum_value'] = '0.05';
+		}			
+		
+		/*** This is for coin field ***/
+		$is_all_coin_needed = FALSE;		
+		if (isset($this->request->post['coin']) && !isset($this->request->get['id'])) {
+			$data['coin'] = $this->request->post['coin'];
+			$is_all_coin_needed = TRUE;		
+		} elseif (!empty($wallet_info)) {
+			$data['coin'] = $wallet_info['coin'];
+		} else {
+			$data['coin'] = '';
+			$is_all_coin_needed = TRUE;
+		}			
+
+		$data['coin_list'] = array();
+		if($is_all_coin_needed){
+			/*** get all coins list ***/		
+			$endPoint = 'get-coin-rate';
+			$get_request = TRUE;
+			$post_data = array();
+			
+			$this->load->model('extension/coinremitter/payment/coinremitter_api');
+			$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
+			
+			$api_response = $obj_curl->apiCall($endPoint,$post_data,$get_request);
+			
+			if($api_response){
+
+				//get all coin list from database
+				$allWallets = $this->model_extension_coinremitter_module_coinremitter->getAllWallets();
+
+				/*** User can only add one wallet per one coin ***/
+				$db_coin_list = array();
+				foreach ($allWallets as $allwal) {
+					$db_coin_list[] = $allwal['coin'];
+				}
+
+				$coin_list = array();
+				foreach ($api_response['data'] as $value) {
+					if(!in_array($value['symbol'], $db_coin_list)){
+						$coin_list[] = $value['symbol']; 
+					}
+				}
+				$data['coin_list'] = $coin_list;	
+			}else{
+				$this->response->redirect($this->url->link('extension/coinremitter/module/coinremitter/pagenotfound', 'user_token=' . $this->session->data['user_token'] . $url, true));
+			}
+			
 		}
+		
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');
@@ -659,19 +729,21 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		/* Minimum invoice field validation */
 		if ($this->request->post['exchange_rate_multiplier'] == '') {
 			$this->error['exchange_rate_multiplier'] = $this->language->get('error_exchange_rate_required');
-		} else if (!is_numeric($this->request->post['exchange_rate_multiplier'])) {
+		}else if (!is_numeric($this->request->post['exchange_rate_multiplier'])) {
 			$this->error['exchange_rate_multiplier'] = $this->language->get('error_exchange_rate_numeric');
-		} else if ($this->request->post['exchange_rate_multiplier'] <= 0 || $this->request->post['exchange_rate_multiplier'] >= 101) {
-			$this->error['exchange_rate_multiplier'] = $this->language->get('error_exchange_rate');
-		}
-
+		}else if($this->request->post['exchange_rate_multiplier'] <= 0 || $this->request->post['exchange_rate_multiplier'] >= 101){
+            $this->error['exchange_rate_multiplier'] = $this->language->get('error_exchange_rate');
+        }
+		
 		/*** Minimum invoice field validation ***/
-		if ($this->request->post['minimum_invoice_amount'] == '') {
-			$this->error['minimum_invoice_amount'] = $this->language->get('error_minimum_value_required');
-		} else if (!is_numeric($this->request->post['minimum_invoice_amount'])) {
-			$this->error['minimum_invoice_amount'] = $this->language->get('error_minimum_value_numeric');
+		if ($this->request->post['minimum_value'] == '') {
+			$this->error['minimum_value'] = $this->language->get('error_minimum_value_required');
+		}else if (!is_numeric($this->request->post['minimum_value'])) {
+			$this->error['minimum_value'] = $this->language->get('error_minimum_value_numeric');
+		}else if($this->request->post['minimum_value'] < 0.01 || $this->request->post['minimum_value'] >= 1000000){
+			$this->error['minimum_value'] = $this->language->get('error_minimum_value');
 		}
-
+		
 		if ($this->error && !isset($this->error['warning'])) {
 			$this->error['warning'] = $this->language->get('error_warning');
 		}
@@ -690,73 +762,26 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 
 		/*** make an api call for wallet balance ***/
+		$coin = $data['coin'];
 		$api_key = $data['api_key'];
 		$password = $obj_curl->encrypt($data['password']);
 
-		$endPoint = '/wallet/balance';
-		$params = array('api_key' => $api_key, 'password' => $password);
+		$endPoint = $coin.'/get-balance';
+		$params = array('api_key' => $api_key, 'password' => $password ); 
 
-		$api_response = $obj_curl->apiCall($endPoint, $params);
-		if ($api_response) {
-			if (!$api_response['success']) {
+		
+		$api_response = $obj_curl->apiCall($endPoint,$params);
+
+		if($api_response){
+			if($api_response['flag'] != 1 ){
 				$this->error['warning'] = $api_response['msg'];
-				return !$this->error;
+				return !$this->error;	
 			}
 			return $api_response['data'];
+		}else{
+			$this->response->redirect($this->url->link('extension/coinremitter/module/coinremitter/pagenotfound', 'user_token=' . $this->session->data['user_token'] . $url, true));
 		}
-		return [];
-	}
-
-	/***
-	 * getFiatToCryptoRate() - This method is to get fiat to crypto rate
-	 ***/
-	protected function getFiatToCryptoRate($data = array())
-	{
-		// load coinremitter library
-		$this->load->model('extension/coinremitter/payment/coinremitter_api');
-		$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
-
-		$endPoint = '/rate/fiat-to-crypto';
-
-		$api_response = $obj_curl->apiCall($endPoint);
-		if ($api_response) {
-			if (!$api_response['success']) {
-				$this->error['warning'] = $api_response['msg'];
-				return !$this->error;
-			}
-			return $api_response['data'];
-		}
-		return [];
-	}
-
-	/***
-	 * getPriceInUsd() - This method is to usd price of coin
-	 ***/
-	protected function getPriceInUsd($coin_symbol)
-	{
-		// load coinremitter library
-		$this->load->model('extension/coinremitter/payment/coinremitter_api');
-		$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
-
-		$endPoint = '/rate/supported-currency';
-
-		$api_response = $obj_curl->apiCall($endPoint);
-		if ($api_response) {
-			if (!$api_response['success']) {
-				$this->error['warning'] = $api_response['msg'];
-				return !$this->error;
-			}
-			$allCoins = $api_response['data'];
-			$priceInUsd = 0;
-			foreach ($allCoins as $coin) {
-				if ($coin['coin_symbol'] == $coin_symbol) {
-					$priceInUsd = $coin['price_in_usd'];
-					break;
-				}
-			}
-			return $priceInUsd;
-		}
-		return 0;
+		
 	}
 
 	/*** validateDelete() - This method is to check if the user has permission to delete or not ***/
@@ -768,12 +793,11 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		return !$this->error;
 	}
 
-	/*** view to not found page ***/
-	public function pagenotfound()
-	{
+    /*** view to not found page ***/
+    public function pagenotfound(){
 
-		$this->load->language('extension/coinremitter/module/coinremitter');
-		$data['breadcrumbs'] = array();
+ 		$this->load->language('extension/coinremitter/module/coinremitter');   	
+    	$data['breadcrumbs'] = array();
 		$data['breadcrumbs'][] = array(
 			'text' => $this->language->get('text_home'),
 			'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'], true)
@@ -783,19 +807,18 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 			'href' => $this->url->link('extension/coinremitter/module/coinremitter', 'user_token=' . $this->session->data['user_token'], true)
 		);
 		$data['text_not_found'] = 'Opps! There is some problem occured. Please check your internet and api url or try again later. ';
-		$data['header'] = $this->load->controller('common/header');
+    	$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['footer'] = $this->load->controller('common/footer');
 
-		$this->response->setOutput($this->load->view('error/not_found', $data));
-	}
+		$this->response->setOutput($this->load->view('error/not_found',$data));
+    }
 
-	/*** uninstall() - This method will be called on uninstall coinremitter extension and it will remove permission from oc_user_group table. This method is automatically called when user uninstall coinremitter wallet module from  modules extensions***/
-	public function uninstall()
-	{
-		$this->load->model('user/user_group');
-		$this->model_user_user_group->removePermission($this->user->getGroupId(), 'access', 'extension/coinremitter/module/coinremitter');
-		$this->model_user_user_group->removePermission($this->user->getGroupId(), 'modify', 'extension/coinremitter/module/coinremitter');
+    /*** uninstall() - This method will be called on uninstall coinremitter extension and it will remove permission from oc_user_group table. This method is automatically called when user uninstall coinremitter wallet module from  modules extensions***/
+	public function uninstall() {  
+        $this->load->model('user/user_group');
+        $this->model_user_user_group->removePermission($this->user->getGroupId(), 'access', 'extension/coinremitter/module/coinremitter');
+        $this->model_user_user_group->removePermission($this->user->getGroupId(), 'modify', 'extension/coinremitter/module/coinremitter');
 
 		$this->load->model('setting/extension');
 		$this->model_setting_extension->uninstall('module', 'coinremitter');
@@ -804,26 +827,20 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$this->model_setting_module->deleteModulesByCode('coinremitter');
 
 		$this->load->model('setting/event');
-		$this->model_setting_event->deleteEventByCode('coinremitter');
-		$this->model_setting_event->deleteEventByCode('coinremitter_admin_order_list');
-		$this->model_setting_event->deleteEventByCode('coinremitter_admin_order_detail');
-		$this->model_setting_event->deleteEventByCode('coinremitter_user_order_list');
-		$this->model_setting_event->deleteEventByCode('coinremitter_user_order_detail');
-	}
+    	$this->model_setting_event->deleteEventByCode('coinremitter');
+    }
 
 
-	/*** uninstall_module will uninstall coinremitter module also which contains wallets stuff and which is called from controller->extension->payment->coinremitter->uninstall(). We are uninstalling here because users dont need to uninstall manually. This method is automatically called when user uninstall coinremitter payment module from payment extensions. This method is different from above uninstall()  ***/
-	public function uninstall_module()
-	{
+    /*** uninstall_module will uninstall coinremitter module also which contains wallets stuff and which is called from controller->extension->payment->coinremitter->uninstall(). We are uninstalling here because users dont need to uninstall manually. This method is automatically called when user uninstall coinremitter payment module from payment extensions. This method is different from above uninstall()  ***/ 
+    public function uninstall_module(){
 
 		/*** Remove permission of coinremitter module extension ***/
 		$this->load->model('user/user_group');
 		$this->model_user_user_group->removePermission($this->user->getGroupId(), 'access', 'extension/coinremitter/module/coinremitter');
-		$this->model_user_user_group->removePermission($this->user->getGroupId(), 'modify', 'extension/coinremitter/module/coinremitter');
-	}
+        $this->model_user_user_group->removePermission($this->user->getGroupId(), 'modify', 'extension/coinremitter/module/coinremitter'); 
+    }
 
-	public function before_install(&$route, &$data, &$code)
-	{
+	public function before_install(&$route, &$data, &$code){
 		exit("sdf");
 	}
 }

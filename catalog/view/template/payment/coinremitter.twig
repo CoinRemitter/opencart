@@ -14,7 +14,7 @@
 	  	<div class="pull-right" style="padding-right: 10px;margin-top: 10px;">
 			<select name="coin" class="form-control" id="coin">
 		     	{% for wallet in wallets %}
-		      		<option value="{{ wallet.coin_symbol }}">{{ wallet.coin_symbol }}</option>
+		      		<option value="{{ wallet.coin }}">{{ wallet.coin }}</option>
 		      	{% endfor %}
 		    </select>	
 		</div>
@@ -29,7 +29,7 @@
 	</div>
 {% endif %}
 
-<script type="text/javascript">
+<script type="text/javascript"><!--
 $('#button-confirm').on('click', function() {
 	$('#error_div').hide();
 	$('#error_msg').text('');
@@ -58,4 +58,4 @@ $('#button-confirm').on('click', function() {
 		}
 	});
 });
-</script>
+//--></script>

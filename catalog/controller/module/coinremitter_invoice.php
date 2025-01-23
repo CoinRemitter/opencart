@@ -1,38 +1,27 @@
 <?php
-
 namespace Opencart\Catalog\Controller\Extension\Coinremitter\Module;
-
-define('ORDER_STATUS', array(
-	'pending' => 0,
-	'paid' => 1,
-	'under_paid' => 2,
-	'over_paid' => 3,
-	'expired' => 4,
-	'cancelled' => 5,
-));
-define('ORDER_STATUS_CODE', array('Pending', 'Paid', 'Under Paid', 'Over Paid', 'Expired', 'Cancelled'));
-define('TRUNCATION_VALUE', 0.05); // in USD
-class CoinremitterInvoice extends \Opencart\System\Engine\Controller
-{
+class CoinremitterInvoice extends \Opencart\System\Engine\Controller {
 
 	private $obj_curl;
-	public function __construct($registry)
-	{
-		parent::__construct($registry);
 
+	public function __construct($registry){
+		parent::__construct($registry);
+		
 		$this->load->model('extension/coinremitter/payment/coinremitter_api');
 		$this->obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
+		
 	}
 
-	public function detail()
-	{
+	public function detail() {
 
 		$enc_order_id = isset($this->request->get['order_id']) ? $this->request->get['order_id'] : '';
 		$order_id = $this->obj_curl->decrypt($enc_order_id);
+
 		//check if order id exists in coinremitter_order or not
-		$this->load->model('extension/coinremitter/payment/coinremitter');
+		$this->load->model('extension/coinremitter/payment/coinremitter');	
 		$coinremitter_order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($order_id);
-		if (empty($coinremitter_order_info)) {
+
+		if(empty($coinremitter_order_info)){
 			return new \Opencart\System\Engine\Action('error/not_found');
 		}
 
@@ -62,527 +51,747 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller
 		$this->load->model('checkout/order');
 		$order_info = $this->model_checkout_order->getOrder($order_id);
 		
-		if (!$order_info) {
-			return new \Opencart\System\Engine\Action('error/not_found');
-		}
-		$data['order_id'] = $order_id;
-		$data['enc_order_id'] = $enc_order_id;
-		$data['date_added'] = date($this->language->get('date_format_short'), strtotime($order_info['date_added']));
-		if ($order_info['payment_address_format']) {
-			$format = $order_info['payment_address_format'];
-		} else {
-			$format = '{firstname} {lastname}' . "\n" . '{company}' . "\n" . '{address_1}' . "\n" . '{address_2}' . "\n" . '{city} {postcode}' . "\n" . '{zone}' . "\n" . '{country}';
-		}
+		if ($order_info) {
 
-		$find = array(
-			'{firstname}',
-			'{lastname}',
-			'{company}',
-			'{address_1}',
-			'{address_2}',
-			'{city}',
-			'{postcode}',
-			'{zone}',
-			'{zone_code}',
-			'{country}'
-		);
+			$data['order_id'] = $order_id;
+			$data['enc_order_id'] = $enc_order_id;
+			$data['date_added'] = date($this->language->get('date_format_short'), strtotime($order_info['date_added']));
 
-		$replace = array(
-			'firstname' => $order_info['payment_firstname'],
-			'lastname'  => $order_info['payment_lastname'],
-			'company'   => $order_info['payment_company'],
-			'address_1' => $order_info['payment_address_1'],
-			'address_2' => $order_info['payment_address_2'],
-			'city'      => $order_info['payment_city'],
-			'postcode'  => $order_info['payment_postcode'],
-			'zone'      => $order_info['payment_zone'],
-			'zone_code' => $order_info['payment_zone_code'],
-			'country'   => $order_info['payment_country']
-		);
+			if ($order_info['payment_address_format']) {
+				$format = $order_info['payment_address_format'];
+			} else {
+				$format = '{firstname} {lastname}' . "\n" . '{company}' . "\n" . '{address_1}' . "\n" . '{address_2}' . "\n" . '{city} {postcode}' . "\n" . '{zone}' . "\n" . '{country}';
+			}
 
-		$data['payment_address'] = str_replace(array("\r\n", "\r", "\n"), '<br />', preg_replace(array("/\s\s+/", "/\r\r+/", "/\n\n+/"), '<br />', trim(str_replace($find, $replace, $format))));
+			$find = array(
+				'{firstname}',
+				'{lastname}',
+				'{company}',
+				'{address_1}',
+				'{address_2}',
+				'{city}',
+				'{postcode}',
+				'{zone}',
+				'{zone_code}',
+				'{country}'
+			);
 
-		$data['payment_method'] = $order_info['payment_method'];
+			$replace = array(
+				'firstname' => $order_info['payment_firstname'],
+				'lastname'  => $order_info['payment_lastname'],
+				'company'   => $order_info['payment_company'],
+				'address_1' => $order_info['payment_address_1'],
+				'address_2' => $order_info['payment_address_2'],
+				'city'      => $order_info['payment_city'],
+				'postcode'  => $order_info['payment_postcode'],
+				'zone'      => $order_info['payment_zone'],
+				'zone_code' => $order_info['payment_zone_code'],
+				'country'   => $order_info['payment_country']
+			);
 
-		if ($order_info['shipping_address_format']) {
-			$format = $order_info['shipping_address_format'];
-		} else {
-			$format = '{firstname} {lastname}' . "\n" . '{company}' . "\n" . '{address_1}' . "\n" . '{address_2}' . "\n" . '{city} {postcode}' . "\n" . '{zone}' . "\n" . '{country}';
-		}
+			$data['payment_address'] = str_replace(array("\r\n", "\r", "\n"), '<br />', preg_replace(array("/\s\s+/", "/\r\r+/", "/\n\n+/"), '<br />', trim(str_replace($find, $replace, $format))));
 
-		$find = array(
-			'{firstname}',
-			'{lastname}',
-			'{company}',
-			'{address_1}',
-			'{address_2}',
-			'{city}',
-			'{postcode}',
-			'{zone}',
-			'{zone_code}',
-			'{country}'
-		);
+			$data['payment_method'] = $order_info['payment_method'];
 
-		$replace = array(
-			'firstname' => $order_info['shipping_firstname'],
-			'lastname'  => $order_info['shipping_lastname'],
-			'company'   => $order_info['shipping_company'],
-			'address_1' => $order_info['shipping_address_1'],
-			'address_2' => $order_info['shipping_address_2'],
-			'city'      => $order_info['shipping_city'],
-			'postcode'  => $order_info['shipping_postcode'],
-			'zone'      => $order_info['shipping_zone'],
-			'zone_code' => $order_info['shipping_zone_code'],
-			'country'   => $order_info['shipping_country']
-		);
+			if ($order_info['shipping_address_format']) {
+				$format = $order_info['shipping_address_format'];
+			} else {
+				$format = '{firstname} {lastname}' . "\n" . '{company}' . "\n" . '{address_1}' . "\n" . '{address_2}' . "\n" . '{city} {postcode}' . "\n" . '{zone}' . "\n" . '{country}';
+			}
 
-		$data['shipping_address'] = str_replace(array("\r\n", "\r", "\n"), '<br />', preg_replace(array("/\s\s+/", "/\r\r+/", "/\n\n+/"), '<br />', trim(str_replace($find, $replace, $format))));
+			$find = array(
+				'{firstname}',
+				'{lastname}',
+				'{company}',
+				'{address_1}',
+				'{address_2}',
+				'{city}',
+				'{postcode}',
+				'{zone}',
+				'{zone_code}',
+				'{country}'
+			);
 
-		if ($data['payment_address'] == '') {
-			$data['payment_address'] = $data['shipping_address'];
-		}
-		$data['shipping_method'] = $order_info['shipping_method'];
+			$replace = array(
+				'firstname' => $order_info['shipping_firstname'],
+				'lastname'  => $order_info['shipping_lastname'],
+				'company'   => $order_info['shipping_company'],
+				'address_1' => $order_info['shipping_address_1'],
+				'address_2' => $order_info['shipping_address_2'],
+				'city'      => $order_info['shipping_city'],
+				'postcode'  => $order_info['shipping_postcode'],
+				'zone'      => $order_info['shipping_zone'],
+				'zone_code' => $order_info['shipping_zone_code'],
+				'country'   => $order_info['shipping_country']
+			);
 
-		$this->load->model('catalog/product');
-		$this->load->model('tool/upload');
-		$this->load->model('tool/image');
+			$data['shipping_address'] = str_replace(array("\r\n", "\r", "\n"), '<br />', preg_replace(array("/\s\s+/", "/\r\r+/", "/\n\n+/"), '<br />', trim(str_replace($find, $replace, $format))));
 
-		// Products
-		$data['products'] = array();
+			$data['shipping_method'] = $order_info['shipping_method'];
 
-		$products = $this->model_checkout_order->getProducts($order_id);
+			$this->load->model('catalog/product');
+			$this->load->model('tool/upload');
+			$this->load->model('tool/image');
 
-		foreach ($products as $product) {
-			$option_data = array();
+			// Products
+			$data['products'] = array();
 
-			$options = $this->model_checkout_order->getOptions($order_id, $product['order_product_id']);
+			$products = $this->model_checkout_order->getProducts($order_id);
 
-			foreach ($options as $option) {
-				if ($option['type'] != 'file') {
-					$value = $option['value'];
-				} else {
-					$upload_info = $this->model_tool_upload->getUploadByCode($option['value']);
+			foreach ($products as $product) {
+				$option_data = array();
 
-					if ($upload_info) {
-						$value = $upload_info['name'];
+				$options = $this->model_checkout_order->getOptions($order_id, $product['order_product_id']);
+
+				foreach ($options as $option) {
+					if ($option['type'] != 'file') {
+						$value = $option['value'];
 					} else {
-						$value = '';
+						$upload_info = $this->model_tool_upload->getUploadByCode($option['value']);
+
+						if ($upload_info) {
+							$value = $upload_info['name'];
+						} else {
+							$value = '';
+						}
 					}
+
+					$option_data[] = array(
+						'name'  => $option['name'],
+						'value' => (strlen(utf8_decode($value)) > 20 ? utf8_substr($value, 0, 20) . '..' : $value)
+					);
 				}
 
-				$option_data[] = array(
-					'name'  => $option['name'],
-					'value' => (strlen($value) > 20 ? substr($value, 0, 20) . '...' : $value)
+				$product_info = $this->model_catalog_product->getProduct($product['product_id']);
+
+				if (!empty($product_info) && is_file(DIR_IMAGE . $product_info['image'])) {
+					$thumb = $this->model_tool_image->resize($product_info['image'], 100, 100);
+				} else {
+					$thumb = $this->model_tool_image->resize('no_image.png', 100, 100);
+				}
+
+				$data['products'][] = array(
+					'name'     => $product['name'],
+					'model'    => $product['model'],
+					'option'   => $option_data,
+					'quantity' => $product['quantity'],
+					'thumb'    => $thumb,
+					'price'    => $this->currency->format($product['price'] + ($this->config->get('config_tax') ? $product['tax'] : 0), $order_info['currency_code'], $order_info['currency_value']),
+					'total'    => $this->currency->format($product['total'] + ($this->config->get('config_tax') ? ($product['tax'] * $product['quantity']) : 0), $order_info['currency_code'], $order_info['currency_value'])
 				);
 			}
 
-			$product_info = $this->model_catalog_product->getProduct($product['product_id']);
+			// Totals
+			$data['totals'] = array();
 
-			if (!empty($product_info) && is_file(DIR_IMAGE . $product_info['image'])) {
-				$thumb = $this->model_tool_image->resize($product_info['image'], 100, 100);
-			} else {
-				$thumb = $this->model_tool_image->resize('no_image.png', 100, 100);
+			$totals = $this->model_checkout_order->getTotals($order_id);
+
+			foreach ($totals as $total) {
+				$data['totals'][] = array(
+					'title' => $total['title'],
+					'text'  => $this->currency->format($total['value'], $order_info['currency_code'], $order_info['currency_value']),
+				);
 			}
+			$orderData =	$this->model_checkout_order->getOrder($order_id);
+			$this->document->setTitle($this->language->get('invoice_title'));
 
-			$data['products'][] = array(
-				'name'     => $product['name'],
-				'model'    => $product['model'],
-				'option'   => $option_data,
-				'quantity' => $product['quantity'],
-				'thumb'    => $thumb,
-				'price'    => $this->currency->format($product['price'] + ($this->config->get('config_tax') ? $product['tax'] : 0), $order_info['currency_code'], $order_info['currency_value']),
-				'total'    => $this->currency->format($product['total'] + ($this->config->get('config_tax') ? ($product['tax'] * $product['quantity']) : 0), $order_info['currency_code'], $order_info['currency_value'])
-			);
+			$data['column_left'] = $this->load->controller('common/column_left');
+			$data['column_right'] = $this->load->controller('common/column_right');
+			$data['content_top'] = $this->load->controller('common/content_top');
+			$data['content_bottom'] = $this->load->controller('common/content_bottom');
+			$this->document->addStyle('extension/coinremitter/catalog/view/javascript/coinremitter/css/coinremitter_invoice.css');
+			$this->document->addScript('extension/coinremitter/catalog/view/javascript/coinremitter/js/coinremitter_invoice.js');
+			$data['header'] = $this->load->controller('common/header');
+			$data['footer'] = $this->load->controller('common/footer');
+			if($orderData['order_status_id'] == 1){
+				$data['order_status'] ='';
+			}else{
+				$data['order_status'] = $orderData['order_status'];
+			}
+			
+			$this->response->setOutput($this->load->view('extension/coinremitter/module/coinremitter_invoice', $data));
+		}else{
+			return new \Opencart\System\Engine\Action('error/not_found');
 		}
 
-		// Totals
-		$data['totals'] = array();
-
-		$totals = $this->model_checkout_order->getTotals($order_id);
-
-		foreach ($totals as $total) {
-			$data['totals'][] = array(
-				'title' => $total['title'],
-				'text'  => $this->currency->format($total['value'], $order_info['currency_code'], $order_info['currency_value']),
-			);
-		}
-		$this->document->setTitle($this->language->get('invoice_title'));
-
-		$data['column_left'] = $this->load->controller('common/column_left');
-		$data['column_right'] = $this->load->controller('common/column_right');
-		$data['content_top'] = $this->load->controller('common/content_top');
-		$data['content_bottom'] = $this->load->controller('common/content_bottom');
-		$this->document->addStyle('extension/coinremitter/catalog/view/javascript/coinremitter/css/coinremitter_invoice.css');
-		$this->document->addScript('extension/coinremitter/catalog/view/javascript/coinremitter/js/coinremitter_invoice.js');
-		$data['header'] = $this->load->controller('common/header');
-		$data['footer'] = $this->load->controller('common/footer');
-		if ($order_info['order_status_id'] == 1) {
-			$data['order_status'] = '';
-		} else {
-			$data['order_status'] = $order_info['order_status'];
-		}
-
-		$this->response->setOutput($this->load->view('extension/coinremitter/module/coinremitter_invoice', $data));
 	}
 
 
-	public function check_payment()
-	{
+	public function payment_history(){
 
+		$json = array();
+		
+		if(isset($this->request->post['address']) && $this->request->post['address'] != ''){
 
-		if (!isset($this->request->post['address']) || $this->request->post['address'] == '') {
-			$json['flag'] = 0;
-			$json['msg'] = 'Invalid Address';
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($json));
-			return false;
-		}
-		$address = $this->request->post['address'];
-		$this->load->model('extension/coinremitter/payment/coinremitter');
-		$this->load->model('checkout/order');
-		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrderByAddress($address);
-		if (empty($order_info)) {
-			$json['flag'] = 0;
-			$json['msg'] = 'Invalid Address';
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($json));
-			return false;
-		}
-		$address = $order_info['payment_address'];
-		$pendingCryptoAmount = $order_info['crypto_amount'] - $order_info['paid_crypto_amount'];
-		$expire_on = null;
-		if ($order_info['expiry_date'] != 0) {
-			$expire_on = date('M d, Y H:i:s', strtotime($order_info['expiry_date']));
-		}
-		$order_info['transaction_meta'] = $order_info['transaction_meta'] ? json_decode($order_info['transaction_meta'], true) : [];
-		$returnData = array(
-			'flag' => 1,
-			'msg' => 'Success',
-			'data' => [
-				"enc_order_id" => urlencode($this->obj_curl->encrypt($order_info['order_id'])),
-				"now_time" => date('Y-m-d, H:i:s'),
-				"coin_symbol" => $order_info['coin_symbol'],
-				"status" => ORDER_STATUS_CODE[$order_info['order_status']],
-				"status_code" => $order_info['order_status'],
-				"transactions" => $order_info['transaction_meta'],
-				"paid_amount" => number_format($order_info['paid_crypto_amount'], 8, '.', ''),
-				"pending_amount" => number_format($pendingCryptoAmount, 8, '.', ''),
-				"expire_on" => $expire_on,
-			]
-		);
-		if ($order_info['order_status'] != ORDER_STATUS['pending'] && $order_info['order_status'] != ORDER_STATUS['under_paid']) {
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($returnData));
-			return false;
-		}
-		$coinSymbol = $order_info['coin_symbol'];
-		$wallet_info = $this->model_extension_coinremitter_payment_coinremitter->getWalletByCoin($coinSymbol);
+			$address = $this->request->post['address'];
 
-		if (empty($wallet_info)) {
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($returnData));
-			return false;
-		}
+			/*** check if address exists in oc_coinremitter_order ***/
+			$this->load->model('extension/coinremitter/payment/coinremitter');
+			$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrderByAddress($address);
+			if(!empty($order_info)){
+				
+				$json['enc_order_id'] = urlencode($this->obj_curl->encrypt($order_info['order_id']));
 
-		/*** Now get all transactions by address from api ***/
-		$trxParam = array(
-			'api_key'	=>	$wallet_info['api_key'],
-			'password'	=>	$wallet_info['password'],
-			'address'	=> 	$address
-		);
+				$isShowDataFromCoinremitterWebhookTable = 0;
 
-		$getTransactionByAddressRes = $this->obj_curl->apiCall('/wallet/address/transactions', $trxParam);
-		if (!$getTransactionByAddressRes || !$getTransactionByAddressRes['success']) {
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($returnData));
-			return false;
-		}
-		$trxByAddressData = $getTransactionByAddressRes['data'];
-		$allTrx = $trxByAddressData['transactions'];
+				if($order_info['payment_status'] == 'pending' || $order_info['payment_status'] == 'under paid'){
 
-		if (empty($allTrx)) {
-			if (
-				$order_info['order_status'] == ORDER_STATUS['pending']
-				&& isset($order_info['expiry_date']) && $order_info['expiry_date'] != ''
-				&& time() >= strtotime($order_info['expiry_date'])
-			) {
-				//update payment_status,status as expired
-				$status = 'expired';
-				$this->model_extension_coinremitter_payment_coinremitter->updateOrderStatus($order_info['order_id'], ORDER_STATUS['expired']);
-				$comments = 'Order #' . $order_info['order_id'];
-				$this->model_checkout_order->addHistory($order_info['order_id'], 7, $comments, true);  // 7 = Canceled
-				$returnData['data']['status'] = ORDER_STATUS_CODE[ORDER_STATUS['expired']];
-				$returnData['data']['status_code'] = ORDER_STATUS['expired'];
+					$coin = $order_info['coin'];
 
-				$this->response->addHeader('Content-Type: application/json');
-				$this->response->setOutput(json_encode($returnData));
-				return false;
-			}
-			$this->response->addHeader('Content-Type: application/json');
-			$this->response->setOutput(json_encode($returnData));
-			return false;
-		}
+					/*** now get wallet data from oc_coinremitter_wallet with use of coin ***/
+					$wallet_info = $this->model_extension_coinremitter_payment_coinremitter->getWallet($coin);
+					
+					if(empty($wallet_info)){
+						$json['flag'] = 0;
+						$json['msg'] = "Wallet not found";
 
-		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrderByAddress($address);
-		$order_info['transaction_meta'] = $order_info['transaction_meta'] ? json_decode($order_info['transaction_meta'], true) : [];
-		$total_paid = 0;
-		$trxMeta = $order_info['transaction_meta'];
-		$updateOrderRequired = false;
-		foreach ($allTrx as $trx) {
-			if (isset($trx['type']) && $trx['type'] == 'receive') {
-				$fiat_amount = ($trx['amount'] * $order_info['fiat_amount']) / $order_info['crypto_amount'];
-				$minFiatAmount = $this->currency->convert($wallet_info['minimum_invoice_amount'], $wallet_info['base_fiat_symbol'], $order_info['fiat_symbol']);
-				$minFiatAmount = number_format($minFiatAmount, 2, '.', '');
-				if($fiat_amount < $minFiatAmount){
-					continue;
-				}
-
-				$transactionInfo = $this->model_extension_coinremitter_payment_coinremitter->checkTransactionExists($order_info['transaction_meta'], $trx['txid']);
-				if (empty($transactionInfo)) {
-					$updateOrderRequired = true;
-					$trxMeta[$trx['txid']] = $trx;
-					$this->add_order_history($order_info['order_id'], $trx);
-				} else {
-					if ($transactionInfo['status_code'] != $trx['status_code']) {
-						$trxMeta[$trx['txid']] = $trx;
-						$updateOrderRequired = true;
+						$this->response->addHeader('Content-Type: application/json');
+						$this->response->setOutput(json_encode($json));	
+						return false;
 					}
+
+					/*** Now get all transactions by address from api ***/
+					$get_trx_params = array(
+						'url'		=> 'get-transaction-by-address',
+						'api_key'	=>	$wallet_info['api_key'],
+	                    'password'	=>	$wallet_info['password'],
+	                    'coin'		=>	$coin,
+	                    'address'	=> $address
+					);
+
+					$getTransactionByAddressRes = $this->obj_curl->commonApiCall($get_trx_params);
+					
+					if(!empty($getTransactionByAddressRes) && isset($getTransactionByAddressRes['flag']) && $getTransactionByAddressRes['flag'] == 1){
+
+						if(!empty($getTransactionByAddressRes['data'])){
+							
+							$getTrxByAddData = $getTransactionByAddressRes['data'];
+
+							/*** Get sum of paid amount of all transations which have 3 or more than 3 confirmtions  ***/
+
+							$total_paid = 0;
+							$resTrxData = array();
+							
+							for ($i=0; $i < count($getTrxByAddData); $i++) { 
+
+								$trx = $getTrxByAddData[$i];
+
+								if(isset($trx['type']) && $trx['type'] == 'receive'){
+
+									/*** Insertion in coinremitter_webhook start ***/
+									/*** now check if transaction exists in oc_coinremitter_webhook or not if does not exist then insert else update confirmations ***/
+									if($trx['confirmations'] >= 3){
+										$total_paid = $total_paid + $trx['amount'];
+									}
+									$resTrxData[$i]['txId'] = substr($trx['txid'],0,20).'...';
+									$resTrxData[$i]['explorer_url'] = $trx['explorer_url'];
+									$resTrxData[$i]['coin'] = $trx['coin_short_name'];
+									$resTrxData[$i]['paid_amount'] = $trx['amount'];
+									$resTrxData[$i]['confirmations'] = $trx['confirmations'];
+									$resTrxData[$i]['paid_date'] = date('M d, Y H:i:s',strtotime($trx['date']));
+									$resTrxData[$i]['now_time'] = date('M d, Y H:i:s');
+									$webhook_info = $this->model_extension_coinremitter_payment_coinremitter->getWebhook($trx['id']);
+									if(empty($webhook_info)){
+										//insert record
+										$insert_arr = array(
+
+											'order_id' => $order_info['order_id'],
+											'address' => $trx['address'],
+											'transaction_id' => $trx['id'],
+											'txId' => $trx['txid'],
+											'explorer_url' => $trx['explorer_url'],
+											'paid_amount' => $trx['amount'],
+											'coin' => $trx['coin_short_name'],
+											'confirmations' => $trx['confirmations'],
+											'paid_date' => $trx['date']
+										);
+
+										$this->model_extension_coinremitter_payment_coinremitter->addWebhook($insert_arr);
+										$total_paid = number_format($total_paid, 8, '.', '');
+
+										$status = '';
+										if ($total_paid == $order_info['crp_amount']) {
+											$status = 'paid';
+										} else if ($total_paid > $order_info['crp_amount']) {
+											$status = 'over paid';
+										} else if ($total_paid != 0 && $total_paid < $order_info['crp_amount']) {
+											$status = 'under paid';
+										}
+										if ($status != '') {
+											//update payment_status,status
+											$update_arr = array('payment_status' => $status);
+											$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'], $update_arr);
+											$update_arr = array('status' => ucfirst($status));
+											$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'], $update_arr);
+											if ($status == 'paid' || $status == 'over paid' || $status == 'under paid') {
+												$this->add_order_success_history($order_info['order_id']);
+											}
+										}
+									}else{
+										//update confirmations if confirmation is less than 3
+										if($webhook_info['confirmations'] < 3){
+											$update_confirmation = array(
+												'confirmations' => $trx['confirmations'] <= 3 ? $trx['confirmations'] : 3 
+											);
+											$this->model_extension_coinremitter_payment_coinremitter->updateTrxConfirmation($webhook_info['transaction_id'],$update_confirmation);
+										} 
+									}
+
+									/*** Insertion in coinremitter_webhook end ***/
+
+									
+								}
+							}
+
+							$total_paid = number_format($total_paid,8,'.','');
+
+							$status = '';
+							if($total_paid == $order_info['crp_amount']){
+								$status = 'paid';
+							}else if($total_paid > $order_info['crp_amount']){
+								$status = 'over paid';
+							}else if($total_paid != 0 && $total_paid < $order_info['crp_amount']){
+								$status = 'under paid';
+							}
+							
+							if($status != ''){
+								//update payment_status,status
+								$update_arr = array('payment_status' => $status);
+								$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'],$update_arr);
+								$update_arr = array('status' => ucfirst($status));
+								$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'],$update_arr);
+
+								if($status == 'paid' || $status == 'over paid'){
+
+									$json['flag'] = 1;
+									$json['msg'] = "Success";
+									$json['is_success'] = 1;
+									
+									$this->response->addHeader('Content-Type: application/json');
+									$this->response->setOutput(json_encode($json));	
+									return false;
+								}
+							}
+
+							$pending = ($order_info['crp_amount'] - $total_paid) > 0 ? $order_info['crp_amount'] - $total_paid : 0;
+
+							$json['flag'] = 1;
+							$json['msg'] = 'success';
+							$json['data'] = array(
+								'payment_data' => $resTrxData,
+								'total_paid' => $total_paid,
+								'pending' => number_format($pending,8,'.',''),
+								'coin' => $order_info['coin'],
+								'nopayment' => 1,
+								'expire_on' => '',
+								'order_status' => $status
+							);
+
+							$this->response->addHeader('Content-Type: application/json');
+							$this->response->setOutput(json_encode($json));
+							return false;
+
+						}else{
+							if($order_info['payment_status'] == 'pending'){
+								/*** check if expired time of invoice is defined or not. If defined and invoice time is expired then change invoice status as expired  ***/
+								if(isset($order_info['expire_on']) && $order_info['expire_on'] != ''){
+									if(time() >= strtotime($order_info['expire_on'])){
+										
+										//update payment_status,status as expired
+										$status = 'expired';
+										$update_arr = array('payment_status' => $status);
+										$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'],$update_arr);
+										$update_arr = array('status' => ucfirst($status));
+										$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'],$update_arr);
+	
+										$this->load->model('checkout/order');
+										$order_cart = $this->model_checkout_order->getOrder($order_info['order_id']);
+	
+										$json['flag'] = 1;
+										$json['msg'] = 'No payment history found';
+										$json['data'] = array(
+											'payment_data' => [],
+											'total_paid' => number_format(0,8,'.',''),
+											'pending' => number_format($order_info['crp_amount'],8,'.',''),
+											'coin' => $order_info['coin'],
+											'nopayment' => 2,
+											'expire_on' => '',
+											'is_simply_display_detail' => 1,
+											'order_status' => 'Expired'
+										);
+	
+										$this->response->addHeader('Content-Type: application/json');
+										$this->response->setOutput(json_encode($json));	
+										return false;
+									}
+								}
+	
+								$nopayment = 0;
+								$expire_on = '';
+								if(isset($order_info['expire_on']) && $order_info['expire_on'] != ''){
+									$expire_on = date('M d, Y H:i:s',strtotime($order_info['expire_on']));
+								}else{
+									$nopayment = 1;
+								}
+	
+								$json['flag'] = 1;
+								$json['msg'] = 'No payment history found';
+								$json['data'] = array(
+									'payment_data' => [],
+									'total_paid' => number_format(0,8,'.',''),
+									'pending' => number_format($order_info['crp_amount'],8,'.',''),
+									'coin' => $order_info['coin'],
+									'nopayment' => $nopayment,
+									'expire_on' => $expire_on
+								);
+	
+								$this->response->addHeader('Content-Type: application/json');
+								$this->response->setOutput(json_encode($json));	
+								return false;
+	
+							}else{
+								$isShowDataFromCoinremitterWebhookTable = 1;
+							}
+						}
+					}else{
+						$isShowDataFromCoinremitterWebhookTable = 1;
+					}
+				}else{
+					$isShowDataFromCoinremitterWebhookTable = 1;
 				}
-				if ($trx['status_code'] == 1) {
-					$total_paid += $trx['amount'];
+
+				/*** If admin changed API Key or if API call fails or order status is other then 'pending','under paid' then data will be got from coinremitter webhook table ***/
+				if($isShowDataFromCoinremitterWebhookTable == 1){
+
+					/*** get data from oc_coinremitte_webhook ***/
+					$getWebhookByAddressRes = $this->model_extension_coinremitter_payment_coinremitter->getWebhookByAddress($address);
+					
+					$total_paid = 0;
+					$resTrxData = [];
+					if($getWebhookByAddressRes){
+						for ($i=0; $i < count($getWebhookByAddressRes); $i++) { 
+							$trx = $getWebhookByAddressRes[$i];
+							if($trx['confirmations'] >= 3){
+								$total_paid += $trx['paid_amount'];
+							}
+
+							$resTrxData[$i]['txId'] = substr($trx['txId'],0,20).'...';
+							$resTrxData[$i]['explorer_url'] = $trx['explorer_url'];
+							$resTrxData[$i]['coin'] = $trx['coin'];
+							$resTrxData[$i]['paid_amount'] = $trx['paid_amount'];
+							$resTrxData[$i]['confirmations'] = $trx['confirmations'];
+							$resTrxData[$i]['paid_date'] = date('M d, Y H:i:s',strtotime($trx['paid_date']));
+							$resTrxData[$i]['now_time'] = date('M d, Y H:i:s');
+						}
+					}
+					
+					$total_paid = number_format($total_paid,8,'.','');
+					$pending = ($order_info['crp_amount'] - $total_paid) > 0 ? $order_info['crp_amount'] - $total_paid : 0;
+
+					$json['flag'] = 1;
+					$json['msg'] = !empty($resTrxData) ? 'Success' : 'No payment history found';
+					$json['data'] = array(
+						'payment_data' => $resTrxData,
+						'total_paid' => $total_paid,
+						'pending' => number_format($pending,8,'.',''),
+						'coin' => $order_info['coin'],
+						'nopayment' => 2,
+						'expire_on' => '',
+						'is_simply_display_detail' => 1,
+						'order_status' => ucfirst($order_info['payment_status'])
+					);	
+					$status = '';
+						if($total_paid == $order_info['crp_amount']){
+							$status = 'paid';
+						}else if($total_paid > $order_info['crp_amount']){
+							$status = 'over paid';
+						}else if($total_paid != 0 && $total_paid < $order_info['crp_amount']){
+							$status = 'under paid';
+						}
+						$json['status_first'] = $status;
+						
+						if($status != ''){
+							//update payment_status,status
+							$update_arr = array('payment_status' => $status);
+							$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'],$update_arr);
+							$update_arr = array('status' => ucfirst($status));
+							$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($order_info['order_id'],$update_arr);
+							if($status == 'paid' || $status == 'over paid'){
+								
+								$json['status_success_final'] = $status;
+								$json['flag'] = 1;
+								$json['msg'] = "Success";
+								$json['is_success'] = 1;
+								
+								$this->response->addHeader('Content-Type: application/json');
+								$this->response->setOutput(json_encode($json));	
+								return false;
+							}
+						}
+
+					$this->response->addHeader('Content-Type: application/json');
+					$this->response->setOutput(json_encode($json));
+					return false;
 				}
+			}else{
+				$json['flag'] = 0;
+				$json['msg'] = 'Invalid Address';	
 			}
+		}else{
+			$json['flag'] = 0;
+			$json['msg'] = 'Invalid address';
 		}
 
-
-		if ($updateOrderRequired) {
-			$truncationValue = $this->currency->convert(TRUNCATION_VALUE, 'USD', $order_info['fiat_symbol']);
-			$truncationValue = number_format($truncationValue, 4, '.', '');
-			$status = ORDER_STATUS['pending'];
-			$total_fiat_paid = ($total_paid * $order_info['fiat_amount']) / $order_info['crypto_amount'];
-			$totalFiatPaidWithTruncation = $total_fiat_paid + $truncationValue;
-			if ($total_paid == $order_info['crypto_amount']) {
-				$status = ORDER_STATUS['paid'];
-			} else if ($total_paid > $order_info['crypto_amount']) {
-				$status = ORDER_STATUS['over_paid'];
-			} else if ($total_paid != 0 && $total_paid < $order_info['crypto_amount']) {
-				$status = ORDER_STATUS['under_paid'];
-				if ($totalFiatPaidWithTruncation > $order_info['fiat_amount']) {
-					$status = ORDER_STATUS['paid'];
-				}
-			}
-			$update_arr = array(
-				'transaction_meta' => json_encode($trxMeta),
-				'paid_crypto_amount' => $total_paid,
-				'paid_fiat_amount' => $total_fiat_paid,
-				'order_status' => $status
-			);
-			$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'], $update_arr);
-			if ($status == ORDER_STATUS['paid'] || $status == ORDER_STATUS['over_paid']) {
-				$this->load->model('checkout/order');
-				$this->add_paid_order_history($order_info['order_id']);
-			}
-
-			$returnData['data']['status'] = ORDER_STATUS_CODE[$status];
-			$returnData['data']['status_code'] = $status;
-			$returnData['data']['transactions'] = $trxMeta;
-			$returnData['data']['paid_amount'] = number_format($total_paid, 8, '.', '');
-			$returnData['data']['pending_amount'] = number_format($order_info['crypto_amount'] - $total_paid, 8, '.', '');
-		}
 		$this->response->addHeader('Content-Type: application/json');
-		$this->response->setOutput(json_encode($returnData));
-		return false;
+		$this->response->setOutput(json_encode($json));
+		
 	}
 
-	public function expired()
-	{
+	public function expired(){
 
 		$enc_order_id = isset($this->request->get['order_id']) ? $this->request->get['order_id'] : '';
 		$orderId = $this->obj_curl->decrypt($enc_order_id);
-
-		if ($orderId == '') {
-			return new \Opencart\System\Engine\Action('error/not_found');
+		
+		if($orderId == ''){
+			return new \Opencart\System\Engine\Action('error/not_found');	
 		}
-
 		//check if order id exists in coinremitter_order or not
-		$this->load->model('extension/coinremitter/payment/coinremitter');
+		$this->load->model('extension/coinremitter/payment/coinremitter');	
 		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-
-		if (empty($order_info)) {
-			return new \Opencart\System\Engine\Action('error/not_found');
+		
+		if(empty($order_info)){
+			return new \Opencart\System\Engine\Action('error/not_found');		
 		}
 		$this->load->model('checkout/order');
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
 
-		if ($order_cart['order_status'] == 'Canceled') {
-			return new \Opencart\System\Engine\Action('checkout/failure');
-		}
-		if (!isset($order_info['expiry_date']) || $order_info['expiry_date'] == null) {
-			return new \Opencart\System\Engine\Action('error/not_found');
-		}
-		if (time() < strtotime($order_info['expiry_date'])) {
-			return new \Opencart\System\Engine\Action('error/not_found');
-		}
+		if($order_cart['order_status'] != 'Canceled'){
 
-		$coin = $order_info['coin_symbol'];
-		$address = $order_info['payment_address'];
-		$wallet_info = $this->model_extension_coinremitter_payment_coinremitter->getWalletByCoin($coin);
-		if (empty($wallet_info)) {
-			return new \Opencart\System\Engine\Action('error/not_found');
-		}
+			if(isset($order_info['expire_on']) && $order_info['expire_on'] != ''){
+				if(time() >= strtotime($order_info['expire_on'])){
+					/*** Get webhook by address***/
+					$getWebhookByAddressRes = $this->model_extension_coinremitter_payment_coinremitter->getWebhookByAddress($order_info['address']);	
+					if(empty($getWebhookByAddressRes)){
 
-		$get_trx_params = array(
-			'api_key'	=>	$wallet_info['api_key'],
-			'password'	=>	$wallet_info['password'],
-			'address'	=> $address
-		);
+						/*** Check if any transaction done or not for this address ***/
 
-		$getTransactionByAddressRes = $this->obj_curl->apiCall('/wallet/address/transactions', $get_trx_params);
-		if (!$getTransactionByAddressRes || !$getTransactionByAddressRes['success']) {
-			return new \Opencart\System\Engine\Action('error/not_found');
-		}
-		if (empty($getTransactionByAddressRes['data']['transactions'])) {
-			//update payment_status,status as expired
-			$status = ORDER_STATUS['expired'];
-			$update_arr = array('order_status' => $status);
-			$this->model_extension_coinremitter_payment_coinremitter->updateOrderStatus($orderId, $update_arr);
+						$coin = $order_info['coin'];
+						$address = $order_info['address'];
 
-			/*** Update order history status to canceled, add comment  ***/
-			$comments = 'Order #' . $orderId;
-			$this->model_checkout_order->addHistory($orderId, 7, $comments, true);  // 7 = Canceled
+						/*** get wallet data from oc_coinremitter_wallet with use of coin ***/
+						$wallet_info = $this->model_extension_coinremitter_payment_coinremitter->getWallet($coin);
 
-			return new \Opencart\System\Engine\Action('checkout/failure');
-		}
-		$getTrxByAddData = $getTransactionByAddressRes['data'];
-		$allTrx = $getTrxByAddData['transactions'];
-		$trxMeta = [];
-		$order_info['transaction_meta'] = $order_info['transaction_meta'] ? json_decode($order_info['transaction_meta'], true) : [];
-		foreach ($allTrx as $trx) {
-			if (isset($trx['type']) && $trx['type'] == 'receive') {
-				$transactionInfo = $this->model_extension_coinremitter_payment_coinremitter->checkTransactionExists($order_info['transaction_meta'], $trx['txid']);
-				if (empty($transactionInfo)) {
-					$trxMeta[$trx['txid']] = $trx;
-					$this->add_order_history($order_info['order_id'], $trx);
+						if(!empty($wallet_info)){
+							/*** Now get all transactions by address from api ***/
+							$get_trx_params = array(
+								'url'		=> 'get-transaction-by-address',
+								'api_key'	=>	$wallet_info['api_key'],
+			                    'password'	=>	$wallet_info['password'],
+			                    'coin'		=>	$coin,
+			                    'address'	=> $address
+							);
+
+							$getTransactionByAddressRes = $this->obj_curl->commonApiCall($get_trx_params);
+
+							if(!empty($getTransactionByAddressRes) && isset($getTransactionByAddressRes['flag']) && $getTransactionByAddressRes['flag'] == 1){
+								if(empty($getTransactionByAddressRes['data'])){
+								//update payment_status,status as expired
+									$status = 'expired';
+									$update_arr = array('payment_status' => $status);
+									$this->model_extension_coinremitter_payment_coinremitter->updateOrder($orderId,$update_arr);
+									$update_arr = array('status' => ucfirst($status));
+									$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($orderId,$update_arr);
+
+									/*** Update order history status to canceled, add comment  ***/
+									$comments = 'Order #'.$orderId;
+									$is_customer_notified = true;
+									$this->model_checkout_order->addHistory($orderId, 7, $comments, $is_customer_notified);  // 7 = Canceled
+
+									return new \Opencart\System\Engine\Action('checkout/failure');
+								}else{									
+									$getTrxByAddData = $getTransactionByAddressRes['data'];
+		
+									/*** Get sum of paid amount of all transations which have 3 or more than 3 confirmtions  ***/
+		
+									for ($i=0; $i < count($getTrxByAddData); $i++) { 
+		
+										$trx = $getTrxByAddData[$i];
+		
+										if(isset($trx['type']) && $trx['type'] == 'receive'){
+		
+											/*** Insertion in coinremitter_webhook start ***/
+											/*** now check if transaction exists in oc_coinremitter_webhook or not if does not exist then insert else update confirmations ***/
+											$webhook_info = $this->model_extension_coinremitter_payment_coinremitter->getWebhook($trx['id']);
+											if(empty($webhook_info)){
+												//insert record
+												$insert_arr = array(
+		
+													'order_id' => $order_info['order_id'],
+													'address' => $trx['address'],
+													'transaction_id' => $trx['id'],
+													'txId' => $trx['txid'],
+													'explorer_url' => $trx['explorer_url'],
+													'paid_amount' => $trx['amount'],
+													'coin' => $trx['coin_short_name'],
+													'confirmations' => $trx['confirmations'],
+													'paid_date' => $trx['date']
+												);
+		
+												$this->model_extension_coinremitter_payment_coinremitter->addWebhook($insert_arr);
+												$status = 'expired';
+												$update_arr = array('payment_status' => $status);
+												$this->model_extension_coinremitter_payment_coinremitter->updateOrder($orderId,$update_arr);
+												$update_arr = array('status' => ucfirst($status));
+												$this->model_extension_coinremitter_payment_coinremitter->updatePaymentStatus($orderId,$update_arr);
+												$this->add_order_success_history($order_info['order_id']);
+											}else{
+												//update confirmations if confirmation is less than 3
+												if($webhook_info['confirmations'] < 3){
+													$update_confirmation = array(
+														'confirmations' => $trx['confirmations'] <= 3 ? $trx['confirmations'] : 3 
+													);
+													$this->model_extension_coinremitter_payment_coinremitter->updateTrxConfirmation($webhook_info['transaction_id'],$update_confirmation);
+												} 
+											}
+										}		
+									}
+									return new \Opencart\System\Engine\Action('checkout/failure');	
+								}
+							}else{
+								return new \Opencart\System\Engine\Action('error/not_found');	
+							}
+						}else{
+							return new \Opencart\System\Engine\Action('error/not_found');
+						}
+					}else{
+						return new \Opencart\System\Engine\Action('error/not_found');
+					}
+				}else{
+					return new \Opencart\System\Engine\Action('error/not_found');
 				}
+			}else{
+				return new \Opencart\System\Engine\Action('error/not_found');
 			}
+		}else{
+			return new \Opencart\System\Engine\Action('checkout/failure');
 		}
-		$update_arr = array('transaction_meta' => json_encode($trxMeta), 'paid_crypto_amount' => 0, 'paid_fiat_amount' => 0, 'order_status' => $order_info['order_status']);
-		$this->model_extension_coinremitter_payment_coinremitter->updateOrder($order_info['order_id'], $update_arr);
 		return new \Opencart\System\Engine\Action('checkout/failure');
 	}
 
 
-	public function success()
-	{
+	public function success(){
 
 		$enc_order_id = isset($this->request->get['order_id']) ? $this->request->get['order_id'] : '';
 		$orderId = $this->obj_curl->decrypt($enc_order_id);
-		if ($orderId == '') {
-			return new \Opencart\System\Engine\Action('error/not_found');
+
+		if($orderId == ''){
+			return new \Opencart\System\Engine\Action('error/not_found');	
 		}
 		//check if order id exists in coinremitter_order or not
-		$this->load->model('extension/coinremitter/payment/coinremitter');
+		$this->load->model('extension/coinremitter/payment/coinremitter');	
 		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-
-		if (empty($order_info)) {
-			return new \Opencart\System\Engine\Action('error/not_found');
+		
+		if(empty($order_info)){
+			return new \Opencart\System\Engine\Action('error/not_found');	
 		}
-		$order_info['transaction_meta'] = $order_info['transaction_meta'] ? json_decode($order_info['transaction_meta'], true) : [];
-		if (($order_info['order_status'] == ORDER_STATUS['paid'] || $order_info['order_status'] == ORDER_STATUS['over_paid']) && !empty($order_info['transaction_meta'])) {
-			return new \Opencart\System\Engine\Action('checkout/success');
-		} else {
-			return new \Opencart\System\Engine\Action('error/not_found');
-		}
-	}
-
-
-	private function add_paid_order_history($orderId)
-	{
-
-		$this->load->model('extension/coinremitter/payment/coinremitter');
-		$this->load->model('checkout/order');
-		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-
-		if (empty($order_info)) {
-			return false;
-		}
-		$enc_order_id = urlencode($this->obj_curl->encrypt($order_info['order_id']));  // order id in encryption format
-		$order_url = $this->url->link('extension/coinremitter/module/coinremitter_invoice|detail&order_id=' . $enc_order_id);
-		$transaction_ids = '';
-		$order_info['transaction_meta'] = json_decode($order_info['transaction_meta'], true);
-		foreach ($order_info['transaction_meta'] as $trx) {
-			$transaction_ids .= '<a href="' . $trx['explorer_url'] . '" target="_blank">' . $trx['txid'] . '</a> - ' . $trx['amount'] . ' ' . $order_info['coin_symbol'] . '<br />Date : ' . $trx['date'] . '<br /><br />';
-		}
-		$total_amount = $order_info['crypto_amount'];
-		$paid_amount = number_format($order_info['paid_crypto_amount'], 8, '.', '');
-		$pending = number_format($total_amount - $paid_amount, 8, '.', '');
-
-		$comments = '';
-		$comments .= 'Coinremitter Order - <a href="' . $order_url . '" target="_blank">#' . $order_info['order_id'] . '</a><br /><br />';
-		$comments .= 'Fiat Currency : ' . $order_info['fiat_symbol'] . '<br />';
-		$comments .= 'Coin : ' . $order_info['coin_symbol'] . '<br />';
-		$comments .= 'Created Date : ' . $order_info['created_at'] . ' (UTC) <br />';
-		$comments .= 'Expiry Date : ' . $order_info['expiry_date'] . ' (UTC) <br />';
-
-		$comments .= 'Transaction :<br />';
-		$comments .= $transaction_ids;
-
-		$comments .= '<br />Order Amount:<br />';
-		$comments .= $total_amount . ' ' . $order_info['coin_symbol'];
-
-		$comments .= '<br /><br /> Paid Amount:<br />';
-		$comments .= $paid_amount . ' ' . $order_info['coin_symbol'];
-
-		$comments .= '<br /><br /> Pending Amount:<br />';
-		$comments .= $pending . ' ' . $order_info['coin_symbol'];
-
-
-		$this->load->model('checkout/order');
-
-		$this->model_checkout_order->addHistory($orderId, 5, $comments);
-	}
-	private function add_order_history($orderId, $trxData)
-	{
-
-		$this->load->model('extension/coinremitter/payment/coinremitter');
+		
 		$this->load->model('checkout/order');
 		$order_cart = $this->model_checkout_order->getOrder($orderId);
-		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
-		if (empty($order_info)) {
-			return false;
+		
+		if(strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'over paid'){
+			// $this->add_order_success_history($orderId);
+			return new \Opencart\System\Engine\Action('checkout/success');	
+		}else{
+			return new \Opencart\System\Engine\Action('error/not_found');	
 		}
-		if (!empty($trxData)) {
+		// if($order_cart['order_status'] == 'Pending'){
 
-			$transaction = '<a href="' . $trxData['explorer_url'] . '" target="_blank">' . $trxData['txid'] . '</a> - ' . $trxData['amount'] . ' ' . $order_info['coin_symbol'] . '<br />Date : ' . $trxData['date'] . '<br /><br />';
-
-			$enc_order_id = urlencode($this->obj_curl->encrypt($order_info['order_id']));  // order id in encryption format
-			$order_url = $this->url->link('extension/coinremitter/module/coinremitter_invoice|detail&order_id=' . $enc_order_id);
-
-			$comments = '';
-			$comments .= 'Coinremitter Order - <a href="' . $order_url . '" target="_blank">#' . $order_info['order_id'] . '</a><br /><br />';
-			$comments .= 'Fiat Currency : ' . $order_info['fiat_symbol'] . '<br />';
-			$comments .= 'Coin : ' . $order_info['coin_symbol'] . '<br />';
-			$comments .= 'Created Date : ' . $order_info['created_at'] . ' (UTC) <br />';
-			$comments .= 'Expiry Date : ' . $order_info['expiry_date'] . ' (UTC) <br />';
-
-			$comments .= 'Transaction :<br />';
-			$comments .= $transaction;
+		// }else{
+		// 	return new \Opencart\System\Engine\Action('error/not_found');	
+		// }
+		
+	}
 
 
-			$this->load->model('checkout/order');
+	private function add_order_success_history($orderId){
 
-			if ($order_cart['order_status'] == 'Pending') {
-				if ($order_info['order_status'] == ORDER_STATUS['over_paid'] || $order_info['order_status'] == ORDER_STATUS['paid']) {
-					$status =  ($this->config->get('payment_coinremitter_order_status') == 0) ? 1 : 5;
-					$this->model_checkout_order->addHistory($orderId, $status, $comments);  // 5 = Complete
-				} else {
-					$this->model_checkout_order->addHistory($orderId, 1, $comments);  // 1 = pending
+
+		$this->load->model('checkout/order');
+		$order_cart = $this->model_checkout_order->getOrder($orderId);
+		if(!empty($order_cart)){
+
+			//check if order id exists in coinremitter_order or not
+			$this->load->model('extension/coinremitter/payment/coinremitter');	
+			$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
+			if(!empty($order_info) && (strtolower($order_info['payment_status']) == 'paid' || strtolower($order_info['payment_status']) == 'over paid' || strtolower($order_info['payment_status']) == 'under paid' || strtolower($order_info['payment_status']) == 'expired')){
+
+				$getWebhookByAddressRes = $this->model_extension_coinremitter_payment_coinremitter->getWebhookByAddress($order_info['address']);	
+
+				if(!empty($getWebhookByAddressRes)){
+
+					/*** Get sum of paid amount of all transations which have 3 or more than 3 confirmtions  ***/
+					$total_paid_res = $this->model_extension_coinremitter_payment_coinremitter->getTotalPaidAmountByAddress($order_info['address']);
+
+					$total_paid = 0;
+					if(isset($total_paid_res['total_paid']) && $total_paid_res['total_paid'] > 0 ){
+						$total_paid = $total_paid_res['total_paid'];
+					}
+
+					$pending = number_format($order_info['crp_amount'] - $total_paid,8,'.','');
+					$paid_amount = number_format($total_paid,8,'.','');
+			        $total_amount = $order_info['crp_amount'];
+
+					/*** Update order history status to complete, add comment with payment info  ***/
+			        $transaction_ids = '';
+
+			        foreach ($getWebhookByAddressRes as $trx) {
+			        	$transaction_ids .= '<a href="'.$trx['explorer_url'].'" target="_blank">'.$trx['txId'].'</a> - '.$trx['paid_amount'].' '.$order_info['coin'].'<br />Date : '.$trx['paid_date'].'<br /><br />';
+			        }
+
+			        $enc_order_id = urlencode($this->obj_curl->encrypt($order_info['order_id']));  // order id in encryption format
+		            $order_url = $this->url->link('extension/coinremitter/module/coinremitter_invoice|detail&order_id='.$enc_order_id);
+
+
+			        $comments = '';
+			        $comments .= 'Coinremitter Order - <a href="'.$order_url.'" target="_blank">#'.$order_info['order_id'].'</a> '.$order_info['status'].' <br /><br />';
+
+			        $comments .= 'Base Currency : '.$order_info['base_currancy'].'<br />';
+			        $comments .= 'Coin : '.$order_info['coin'].'<br />';
+			        $comments .= 'Created Date : '.$order_info['created_at'].' (UTC) <br />';
+			        $comments .= 'Expiry Date : '.$order_info['expire_on'].' (UTC) <br />';
+			        $comments .= 'Description : '.$order_info['description'].'<br /><br />';
+
+
+			        $comments .= 'Transaction Ids:<br />';
+			        $comments .= $transaction_ids;
+
+			        $comments .= '<br />Order Amount:<br />';
+					$comments .= $total_amount.' '.$order_info['coin'];
+
+			        $comments .= '<br /><br /> Paid Amount:<br />';
+			        $comments .= $paid_amount.' '.$order_info['coin'];
+
+			        $comments .= '<br /><br /> Pending Amount:<br />';
+			        $comments .= $pending.' '.$order_info['coin'];
+
+			        
+			        $this->load->model('checkout/order');
+
+					if($order_cart['order_status'] == 'Pending'){
+						if($order_info['payment_status'] == 'over paid' || $order_info['payment_status'] == 'paid'){
+							$status =  ($this->config->get('payment_coinremitter_order_status') == 0)?1:5;
+							$this->model_checkout_order->addHistory($orderId, $status, $comments);  // 5 = Complete
+						}else{
+							$this->model_checkout_order->addHistory($orderId, 1, $comments);  // 1 = pending
+						}
+					}else{
+						$status_id = $this->db->query("SELECT *  FROM " . DB_PREFIX . "order_status where name LIKE '%" . $order_cart['order_status'] . "%'");
+											
+						$this->model_checkout_order->addHistory($orderId, $status_id->row['order_status_id'], $comments);
+					}
 				}
-			} else {
-				$status_id = $this->db->query("SELECT *  FROM " . DB_PREFIX . "order_status where name LIKE '%" . $this->db->escape($order_cart['order_status']) . "%'");
-
-				$this->model_checkout_order->addHistory($orderId, $status_id->row['order_status_id'], $comments);
 			}
 		}
 	}
+
 }
