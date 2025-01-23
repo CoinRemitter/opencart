@@ -25,17 +25,17 @@
     </div>
     <div class="container-fluid">
         {% if error_warning %}
-            <div class="alert alert-danger alert-dismissible">
+            <div class="alert alert-danger alert-dismissible" role="alert">
                 <i class="fa fa-exclamation-circle"></i>
                 {{ error_warning }}
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <button type="button" class="btn-close close" data-dismiss="alert"></button>
             </div>
         {% endif %}
         {% if success %}
-            <div class="alert alert-success alert-dismissible">
+            <div class="alert alert-success alert-dismissible" role="alert">
                 <i class="fa fa-check-circle"></i>
                 {{ success }}
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <button type="button" class="btn-close close" data-dismiss="alert"></button>
             </div>
         {% endif %}
         <div class="alert alert-info alert-dismissible">
@@ -58,15 +58,17 @@
                                     <td class="text-center">{{ column_logo }}</td>
                                     {# <td class="text-left">
                                         {% if sort %}
-                                            <a href="{{ coin }}" class="{{ order|lower }}">{{ column_coin }}</a>
+                                            <a href="{{ coin }}" class="{{ order|lower }}">{{ column_coin_symbol }}</a>
                                         {% else %}
-                                            <a href="{{ coin }}">{{ column_coin }}</a>
+                                            <a href="{{ coin }}">{{ column_coin_symbol }}</a>
                                         {% endif %}
                                     </td> #}
-                                    <td class="text-left">{{ column_coin }}</td>
+                                    <td class="text-left">{{ column_coin_symbol }}</td>
                                     <td class="text-left">{{ column_coin_name }}</td>
                                     <td class="text-left">{{ column_wallet_name }}</td>
                                     <td class="text-left">{{ column_balance }}</td>
+                                    <td class="text-left">{{ column_minimum_invoice_amount }}</td>
+                                    <td class="text-left">{{ column_exchange_rate_multiplier }}</td>
                                     <td class="text-left">{{ column_created_date }}</td>
                                     <td class="text-right">{{ column_action }}</td>
                                 </tr>
@@ -83,10 +85,12 @@
                                                 {% endif %}
                                             </td>
                                             <td class="text-center"><img src="{{ wallet.logo }}" height="25px" width="25px"></td>
-                                            <td class="text-left">{{ wallet.coin }}</td>
+                                            <td class="text-left">{{ wallet.coin_symbol }}</td>
                                             <td class="text-left">{{ wallet.coin_name }}</td>
                                             <td class="text-left">{{ wallet.wallet_name }}</td>
-                                            <td class="text-left">{{ wallet.balance }}</td>
+                                            <td class="text-left">{{ wallet.balance }} {{wallet.coin_symbol}}</td>
+                                            <td class="text-left">{{ wallet.minimum_invoice_amount }} {{wallet.fiat_symbol}}</td>
+                                            <td class="text-left">{{ wallet.exchange_rate_multiplier }}</td>
                                             <td class="text-left">{{ wallet.created_at }}</td>
                                             
                                             <td class="text-right">
@@ -98,7 +102,7 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td class="text-center" colspan="8">{{ text_no_results }}</td>
+                                        <td class="text-center" colspan="10">{{ text_no_results }}</td>
                                     </tr>
                                 {% endif %}
                             </tbody>
@@ -113,4 +117,11 @@
         </div>
     </div>
 </div>
+<script>
+$(document).on('click','.close',function(){
+    $(this).parent().fadeOut(300, function() {
+        $(this).remove();
+    });
+})
+</script>
 {{ footer }}

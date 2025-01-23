@@ -340,7 +340,8 @@ img {
 }
 .cr-plugin-brand{
     padding: 20px;
-    text-align: center;
+    display: flex;
+    justify-content: center;
 }
 .cr-plugin-brand span{
     font-size: 16px;

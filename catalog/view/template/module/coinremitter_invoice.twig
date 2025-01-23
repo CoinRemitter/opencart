@@ -14,9 +14,9 @@
             <p>Copied</p>
           </div>
          <article class="post-8 page type-page status-publish hentry" id="post-8">
-            <input type="hidden" id="address" value="{{coinremitter_order_info['address']}}" />
+            <input type="hidden" id="address" value="{{coinremitter_order_info['payment_address']}}" />
             <input type="hidden" id="enc_order_id" value="{{enc_order_id | url_encode}}">
-            <input type="hidden" id="coin" value="{{coinremitter_order_info['coin']}}">
+            <input type="hidden" id="coin" value="{{coinremitter_order_info['coin_symbol']}}">
             <input type="hidden" id="expire_on">
             <h2>Order Invoice #{{order_id}}</h2>
             <div class="post-inner thin ">
@@ -108,17 +108,17 @@
                            <div class="cr-plugin-timer" id="timerStatus"></div>
                            <div class="cr-plugin-billing-box">
                               <div class="cr-plugin-billing-code">
-                                 <img class="copyToClipboard" data-copy-detail = "{{coinremitter_order_info['address']}}" src="{{coinremitter_order_info['qr_code']}}" align="" title="Click to Copy">
+                                 <img class="copyToClipboard" data-copy-detail = "{{coinremitter_order_info['payment_address']}}" src="{{coinremitter_order_info['qr_code']}}" align="" title="Click to Copy">
                               </div>
                               <div class="cr-plugin-billing-amount">
                                  <ul>
                                     <li>
                                        <span>Address</span>
-                                       <p class="copyToClipboard" data-copy-detail = "{{coinremitter_order_info['address']}}" title="Click to copy">{{coinremitter_order_info['address']}} <i class="fa fa-clipboard" title="Click to copy"></i></p>
+                                       <p class="copyToClipboard" data-copy-detail = "{{coinremitter_order_info['payment_address']}}" title="Click to copy">{{coinremitter_order_info['payment_address']}} <i class="fa fa-clipboard" title="Click to copy"></i></p>
                                     </li>
                                     <li>
                                        <span>Amount</span>
-                                       <p class="copyToClipboard" data-copy-detail = "{{coinremitter_order_info['crp_amount'] }}" title="Click to Copy">{{coinremitter_order_info['crp_amount'] }} {{coinremitter_order_info['coin']}}</p>
+                                       <p class="copyToClipboard" data-copy-detail = "{{coinremitter_order_info['crypto_amount'] }}" title="Click to Copy">{{coinremitter_order_info['crypto_amount'] }} {{coinremitter_order_info['coin_symbol']}}</p>
                                     </li>
                                  </ul>
                               </div>
@@ -136,8 +136,8 @@
                            </div>
                            <div class="cr-plugin-history-footer">
                               <ul class="clearfix">
-                                 <li>Paid <span id="paid-amt">0.00000000 {{coinremitter_order_info['coin']}}</span></li>
-                                 <li>Pending <span id="pending-amt">{{coinremitter_order_info['crp_amount'] }} {{coinremitter_order_info['coin']}}</span></li>
+                                 <li>Paid <span id="paid-amt">0.00000000 {{coinremitter_order_info['coin_symbol']}}</span></li>
+                                 <li>Pending <span id="pending-amt">{{coinremitter_order_info['crypto_amount'] }} {{coinremitter_order_info['coin_symbol']}}</span></li>
                               </ul>
                            </div>
                         </div>
