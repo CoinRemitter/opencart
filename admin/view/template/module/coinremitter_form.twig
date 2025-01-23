@@ -36,32 +36,6 @@
             </div>
             <div class="panel-body">
                 <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-category" class="form-horizontal">
-                    
-                    <div class="form-group">
-                        <label class="col-sm-2 control-label" for="input-coin">{{ entry_coin }}</label>
-                        <div class="col-sm-10">
-
-                            {% if coin_list is empty %}
-                                <label class="control-label">{{ coin }}</label>
-                                <input type="hidden" name="coin" value="{{ coin }}">
-                            {% else %}
-                                <select name="coin" id="input-coin" class="form-control">
-
-                                    {% for coin_symbol in coin_list %}
-                                        {% set selected = '' %}
-                                        {% if coin_symbol == coin %}
-                                            {% set selected = 'selected' %}
-                                        {% endif %}            
-                                        <option value="{{ coin_symbol }}" {{ selected }}>{{ coin_symbol }}</option>
-                                        }
-                                    {% endfor %}
-
-                                </select>
-                            {% endif %}
-                            
-                        </div>
-                    </div>
-
                     <div class="form-group">
                         <label class="col-sm-2 control-label" for="input-api-key">{{ entry_api_key }}</label>
                         <div class="col-sm-10">
@@ -95,9 +69,9 @@
                     <div class="form-group">
                         <label class="col-sm-2 control-label" for="input-minimum-value">{{ entry_minimum_value }}</label>
                         <div class="col-sm-10">
-                            <input type="text" name="minimum_value" value="{{ minimum_value }}" placeholder="{{ entry_minimum_value }}" id="input-minimum-value" class="form-control" />
-                            {% if error_minimum_value %}
-                            <div class="text-danger">{{ error_minimum_value }}</div>
+                            <input type="text" name="minimum_invoice_amount" value="{{ minimum_invoice_amount }}" placeholder="{{ entry_minimum_value }}" id="input-minimum-value" class="form-control" />
+                            {% if error_minimum_invoice_amount %}    
+                            <div class="text-danger">{{ error_minimum_invoice_amount }}</div>
                             {% endif %}
                         </div>
                     </div>
