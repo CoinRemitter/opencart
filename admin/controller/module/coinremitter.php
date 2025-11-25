@@ -248,9 +248,9 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 					$this->session->data['success'] = $this->language->get('text_success');
 				}
 				/*download coin image if not exists*/
-				$coin_image_path = str_replace('/admin/index.php?route=', '/', $this->url->link('extension/coinremitter/admin/view/image/coinremitter/')) . $walletRes['coin_symbol'] . '.png';
+				$coin_image_path = dirname(__DIR__, 2) . '/view/image/coinremitter/' . $walletRes['coin_symbol'] . '.png';
 				if (!file_exists($coin_image_path)) {
-					$url = CR_BASE_URL . "assets/images/coins/32x32/" . strtoupper($walletRes['coin_symbol']) . ".png";
+					$url = $walletRes['coin_logo'];
 					if (getimagesize($url)) {
 						copy($url, $coin_image_path);
 					}
