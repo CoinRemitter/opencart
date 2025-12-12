@@ -41,7 +41,7 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
         if (VERSION) {
             $opencart_version = VERSION;
         }
-        $user_agent = 'api@' . $api_version . ' opencart@' . $opencart_version . ' checkout-module' . ' version@' . $plugin_version;
+        $user_agent = 'Opencart@' . $opencart_version . ' crplugin@'. $plugin_version;
 
         $header = array(
             "Content-Type: application/json",
