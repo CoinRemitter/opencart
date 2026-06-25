@@ -431,7 +431,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 					$status = ORDER_STATUS['over_paid'];
 				} else if ($total_paid != 0 && $total_paid < $order_info['crypto_amount']) {
 					$status = ORDER_STATUS['under_paid'];
-					if ($totalFiatPaidWithTruncation > $order_info['fiat_amount']) {
+					if ($totalFiatPaidWithTruncation >= $order_info['fiat_amount']) {
 						$status = ORDER_STATUS['paid'];
 					}
 				}

@@ -34,7 +34,7 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
     {
         $api_url = CR_BASE_URL;
         $api_version = 'v1';
-        $plugin_version = '0.0.4';
+        $plugin_version = '0.0.5';
         $url = $api_url . $api_version . $endPoint;
 
         $opencart_version = '';
