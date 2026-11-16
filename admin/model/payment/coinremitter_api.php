@@ -77,22 +77,65 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
         return json_decode($result, true);
     }
 
+    public function get_encryption_key()
+    {
+        $key = '';
+        try {
+            $key = (string)$this->config->get('config_encryption');
+        } catch (\Throwable $e) {}
+
+        if ($key === '') {
+            $key = $this->skey;
+        }
+
+        return hash('sha256', $key, true);
+    }
+
     public function encrypt($value)
     {
         if (!$value) {
             return false;
         }
-        $text = $value;
-        $crypttext = openssl_encrypt($text, $this->ciphering, $this->skey, $this->options, $this->encryption_iv);
-        return trim($crypttext);
+
+        $key = $this->get_encryption_key();
+        $iv = function_exists('random_bytes') ? random_bytes(16) : openssl_random_pseudo_bytes(16);
+        $encrypted = openssl_encrypt((string)$value, $this->ciphering, $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($encrypted === false) {
+            return false;
+        }
+
+        return 'crv2:' . base64_encode($iv . $encrypted);
     }
+
     public function decrypt($value)
     {
         if (!$value) {
             return false;
         }
-        $encryption = $value;
-        $decrypttext = openssl_decrypt($encryption, $this->ciphering, $this->skey, $this->options, $this->encryption_iv);
-        return trim($decrypttext);
+
+        // Handle URL-encoded crv2 prefix or percent-encoding
+        if (strpos($value, '%') !== false) {
+            $value = rawurldecode($value);
+        }
+
+        // v2: dynamic IV
+        if (strpos($value, 'crv2:') === 0) {
+            $raw = base64_decode(substr($value, 5), true);
+            if ($raw === false || strlen($raw) <= 16) {
+                return false;
+            }
+
+            $iv = substr($raw, 0, 16);
+            $ciphertext = substr($raw, 16);
+            $key = $this->get_encryption_key();
+
+            $decrypted = openssl_decrypt($ciphertext, $this->ciphering, $key, OPENSSL_RAW_DATA, $iv);
+            return ($decrypted === false) ? false : $decrypted;
+        }
+
+        // Legacy fallback (only for non-crv2 values)
+        $legacy = openssl_decrypt($value, $this->ciphering, $this->skey, $this->options, $this->encryption_iv);
+        return ($legacy === false) ? false : $legacy;
     }
 }

@@ -73,10 +73,11 @@ function dateTimer() {
 
 function check_payment_history() {
 	var address = $('#address').val();
+	var enc_order_id = $('#enc_order_id').val();
 	$.ajax({
 		url: 'index.php?route=extension/coinremitter/module/coinremitter_invoice|check_payment',
 		type: 'post',
-		data: { address },
+		data: { address: address, enc_order_id: enc_order_id },
 		success: function (res) {
 			if (res.flag == 1) {
 				var res_data = res.data;

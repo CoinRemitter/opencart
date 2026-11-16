@@ -24,11 +24,56 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller
 		$this->obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 	}
 
+	private function hasValidCustomerOrderAccess($order_id, $enc_order_id = '')
+	{
+		$this->load->model('checkout/order');
+		$order_info = $this->model_checkout_order->getOrder((int)$order_id);
+
+		if (!$order_info) {
+			return false;
+		}
+
+		$order_customer_id = (int)$order_info['customer_id'];
+
+		// Registered customer: Must be logged in and match customer_id
+		if ($order_customer_id > 0) {
+			return $this->customer->isLogged() && $order_customer_id === (int)$this->customer->getId();
+		}
+
+		// Guest checkout: Must present the secret order token matching order_id
+		if ($order_customer_id === 0) {
+			if (!empty($enc_order_id)) {
+				$decrypted_id = $this->obj_curl->decrypt($enc_order_id);
+				return $decrypted_id !== false && (int)$decrypted_id === (int)$order_id;
+			}
+		}
+
+		return false;
+	}
+
 	public function detail()
 	{
 
 		$enc_order_id = isset($this->request->get['order_id']) ? $this->request->get['order_id'] : '';
 		$order_id = $this->obj_curl->decrypt($enc_order_id);
+		if ($order_id == '') {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
+
+		$this->load->model('checkout/order');
+		$order_info = $this->model_checkout_order->getOrder((int)$order_id);
+		if (!$order_info) {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
+
+		if ((int)$order_info['customer_id'] > 0 && !$this->customer->isLogged()) {
+			return new \Opencart\System\Engine\Action('account/login');
+		}
+
+		if (!$this->hasValidCustomerOrderAccess($order_id, $enc_order_id)) {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
+		
 		//check if order id exists in coinremitter_order or not
 		$this->load->model('extension/coinremitter/payment/coinremitter');
 		$coinremitter_order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($order_id);
@@ -238,12 +283,16 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller
 			return false;
 		}
 		$address = $this->request->post['address'];
+		$enc_order_id = isset($this->request->post['enc_order_id']) ? $this->request->post['enc_order_id'] : '';
 		$this->load->model('extension/coinremitter/payment/coinremitter');
 		$this->load->model('checkout/order');
 		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrderByAddress($address);
-		if (empty($order_info)) {
+		if (
+			empty($order_info)
+			|| !$this->hasValidCustomerOrderAccess((int)$order_info['order_id'], $enc_order_id)
+		) {
 			$json['flag'] = 0;
-			$json['msg'] = 'Invalid Address';
+			$json['msg'] = 'Unauthorized access';
 			$this->response->addHeader('Content-Type: application/json');
 			$this->response->setOutput(json_encode($json));
 			return false;
@@ -404,6 +453,19 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller
 			return new \Opencart\System\Engine\Action('error/not_found');
 		}
 
+		$this->load->model('checkout/order');
+		$order_cart = $this->model_checkout_order->getOrder((int)$orderId);
+		if (!$order_cart) {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
+
+		if ((int)$order_cart['customer_id'] > 0 && !$this->customer->isLogged()) {
+			return new \Opencart\System\Engine\Action('account/login');
+		}
+
+		if (!$this->hasValidCustomerOrderAccess($orderId, $enc_order_id)) {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
 		//check if order id exists in coinremitter_order or not
 		$this->load->model('extension/coinremitter/payment/coinremitter');
 		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
@@ -411,8 +473,6 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller
 		if (empty($order_info)) {
 			return new \Opencart\System\Engine\Action('error/not_found');
 		}
-		$this->load->model('checkout/order');
-		$order_cart = $this->model_checkout_order->getOrder($orderId);
 
 		if ($order_cart['order_status'] == 'Canceled') {
 			return new \Opencart\System\Engine\Action('checkout/failure');
@@ -480,6 +540,21 @@ class CoinremitterInvoice extends \Opencart\System\Engine\Controller
 		if ($orderId == '') {
 			return new \Opencart\System\Engine\Action('error/not_found');
 		}
+
+		$this->load->model('checkout/order');
+		$order_cart = $this->model_checkout_order->getOrder((int)$orderId);
+		if (!$order_cart) {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
+
+		if ((int)$order_cart['customer_id'] > 0 && !$this->customer->isLogged()) {
+			return new \Opencart\System\Engine\Action('account/login');
+		}
+
+		if (!$this->hasValidCustomerOrderAccess($orderId, $enc_order_id)) {
+			return new \Opencart\System\Engine\Action('error/not_found');
+		}
+		
 		//check if order id exists in coinremitter_order or not
 		$this->load->model('extension/coinremitter/payment/coinremitter');
 		$order_info = $this->model_extension_coinremitter_payment_coinremitter->getOrder($orderId);
