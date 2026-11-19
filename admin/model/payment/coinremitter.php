@@ -80,6 +80,44 @@ class Coinremitter extends \Opencart\System\Engine\Model
         $data['sort_order'] = 5;
         $this->load->model('catalog/information');
         $json['information_id'] = $this->model_catalog_information->addInformation($data);
+
+        $this->migrateWallets();
+    }
+
+    public function migrateWallets(): void
+    {
+        try {
+            $table_name = DB_PREFIX . 'coinremitter_wallets';
+            $query = $this->db->query("SELECT `id`, `password` FROM `" . $table_name . "` WHERE `password` NOT LIKE 'crv2:%' AND `password` != ''");
+            if ($query && $query->num_rows) {
+                $this->load->model('extension/coinremitter/payment/coinremitter_api');
+                $api = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
+
+                foreach ($query->rows as $row) {
+                    $raw_password = $row['password'];
+                    $val = (strpos($raw_password, '%') !== false) ? rawurldecode($raw_password) : $raw_password;
+                    if (strpos($val, 'crv2:') === 0) {
+                        continue;
+                    }
+
+                    $plain = openssl_decrypt($val, $api->ciphering, $api->get_encryption_key(), $api->options, $api->encryption_iv);
+                    if ($plain === false || $plain === '') {
+                        $plain = openssl_decrypt($val, $api->ciphering, $api->skey, $api->options, $api->encryption_iv);
+                    }
+
+                    if ($plain !== false && $plain !== '') {
+                        $new_encrypted = $api->encrypt($plain);
+                        if ($new_encrypted !== false) {
+                            $this->db->query("UPDATE `" . $table_name . "` SET `password` = '" . $this->db->escape($new_encrypted) . "' WHERE `id` = '" . (int)$row['id'] . "'");
+                        }
+                    }
+                }
+
+                if (isset($this->cache)) {
+                    $this->cache->delete('coinremitter_wallets');
+                }
+            }
+        } catch (\Throwable $e) {}
     }
 
     public function uninstall()

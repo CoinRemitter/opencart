@@ -438,6 +438,13 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		);
 		/*** This is to get the total of number of wallets as this is needed for the pagination ***/
 		$wallets_total = $this->model_extension_coinremitter_module_coinremitter->getTotalWallets();
+
+		$this->load->model('extension/coinremitter/payment/coinremitter_api');
+		$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
+
+		$this->load->model('extension/coinremitter/payment/coinremitter');
+		$this->model_extension_coinremitter_payment_coinremitter->migrateWallets();
+
 		/*** This is to get filtered wallets ***/
 		$results = $this->model_extension_coinremitter_module_coinremitter->getWallets($filter_data);
 		/*** This is how we set data to the wallets array, we can get many variables in the $results variables so we separate what is needed in template twig file and pass them to it ***/
@@ -450,8 +457,6 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 				$minimumInvFiatAmount = $this->currency->convert($result['minimum_invoice_amount'], $result['base_fiat_symbol'], $baseFiatCurrency);
 				$this->model_extension_coinremitter_module_coinremitter->updateWalletMinInvRate($result['id'],array('minimum_invoice_amount' => $minimumInvFiatAmount, 'base_fiat_symbol' => $baseFiatCurrency));
 			}
-			$this->load->model('extension/coinremitter/payment/coinremitter_api');
-			$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);
 			$result['password'] = $obj_curl->decrypt($result['password']);
 			$ccRes = $this->checkCredentials($result);
 			if ($ccRes) {
@@ -522,7 +527,7 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$data['footer'] = $this->load->controller('common/footer');
 		/*** Set the response output ***/
 
-		$webhook_url_link = str_replace('/admin/', '/', $this->url->link('extension/coinremitter/payment/coinremitter|webhook'));
+		$webhook_url_link = str_replace('/admin/', '/', $this->url->link('extension/coinremitter/payment/coinremitter.webhook'));
 		$data['webhook_url_msg'] = "For all these wallets, add this <strong>" . $webhook_url_link . "</strong> URL in the Webhook URL field of your Coinremitter wallet's General Settings.";
 		$data['button_add'] = "Add Wallet";
 		$data['button_refresh'] = "Refresh wallet list";
@@ -589,6 +594,9 @@ class Coinremitter extends \Opencart\System\Engine\Controller
 		$data['cancel'] = $this->url->link('extension/coinremitter/module/coinremitter', 'user_token=' . $this->session->data['user_token'] . $url, true);
 		/*** This is the code which pulls the wallet that we have to edit  ***/
 		if (isset($this->request->get['id'])) {
+			$this->load->model('extension/coinremitter/payment/coinremitter');
+			$this->model_extension_coinremitter_payment_coinremitter->migrateWallets();
+
 			// load coinremitter library
 			$this->load->model('extension/coinremitter/payment/coinremitter_api');
 			$obj_curl = $this->model_extension_coinremitter_payment_coinremitter_api->get_instance($this->registry);

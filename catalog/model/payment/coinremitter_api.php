@@ -34,7 +34,7 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
     {
         $api_url = CR_BASE_URL;
         $api_version = 'v1';
-        $plugin_version = '0.0.5';
+        $plugin_version = '0.0.6';
         $url = $api_url . $api_version . $endPoint;
 
         $opencart_version = '';
@@ -117,7 +117,7 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
             $value = rawurldecode($value);
         }
 
-        // v2: dynamic IV
+        // Only accept crv2 dynamic IV format
         if (strpos($value, 'crv2:') === 0) {
             $raw = base64_decode(substr($value, 5), true);
             if ($raw === false || strlen($raw) <= 16) {
@@ -132,8 +132,6 @@ class CoinremitterApi extends \Opencart\System\Engine\Model
             return ($decrypted === false) ? false : $decrypted;
         }
 
-        // Legacy fallback (only for non-crv2 values)
-        $legacy = openssl_decrypt($value, $this->ciphering, $this->skey, $this->options, $this->encryption_iv);
-        return ($legacy === false) ? false : $legacy;
+        return false;
     }
 }
